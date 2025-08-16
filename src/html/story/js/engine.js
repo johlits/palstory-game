@@ -72,11 +72,14 @@
       var player = window.player;
       if (type === 'image') {
         var applyDarken = false; var brightness = 1.0;
-        if (typeof player !== 'undefined' && this !== player) {
-          var dx = Math.round((this.x - player.x) / ss);
-          var dy = Math.round((this.y - player.y) / ss);
-          var md = Math.abs(dx) + Math.abs(dy);
-          if (md > 1) { applyDarken = true; brightness = Math.max(0.2, 1 - 0.2 * (md - 1)); }
+        // With fog-of-war, avoid extra dimming so visited tiles render untouched
+        if (!window.Fog) {
+          if (typeof player !== 'undefined' && this !== player) {
+            var dx = Math.round((this.x - player.x) / ss);
+            var dy = Math.round((this.y - player.y) / ss);
+            var md = Math.abs(dx) + Math.abs(dy);
+            if (md > 1) { applyDarken = true; brightness = Math.max(0.2, 1 - 0.2 * (md - 1)); }
+          }
         }
         var imgReady = false;
         try { imgReady = !!(this.image && this.image.complete && this.image.naturalWidth > 0); } catch(_) { imgReady = false; }
@@ -199,6 +202,8 @@
         ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.fillStyle = ft.color;
         ctx.strokeText(ft.text, ft.x + jitter, y); ctx.fillText(ft.text, ft.x + jitter, y); ctx.restore();
       }
+      // Render fog-of-war overlay last so undiscovered stays masked
+      try { if (window.Fog && typeof window.Fog.render === 'function') { window.Fog.render(window.myGameArea.context); } } catch(_){}
     }
   }
 

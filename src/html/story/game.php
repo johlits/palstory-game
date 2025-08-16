@@ -340,5 +340,6 @@
 <script src="js/movement.js"></script>
 <script src="js/monsters.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/fog.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/app.js"></script>

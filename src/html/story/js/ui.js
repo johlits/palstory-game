@@ -76,6 +76,34 @@
     $('#game_link').attr('href', url);
   };
 
+  // Movement indicator setup
+  (function setupMoveIndicator(){
+    try {
+      if (document.getElementById('moving-indicator')) return;
+      var el = document.createElement('div');
+      el.id = 'moving-indicator';
+      el.textContent = 'Moving…';
+      el.style.position = 'fixed';
+      el.style.bottom = '8px';
+      el.style.right = '8px';
+      el.style.padding = '4px 8px';
+      el.style.background = 'rgba(0,0,0,0.55)';
+      el.style.color = '#fff';
+      el.style.fontSize = '12px';
+      el.style.borderRadius = '4px';
+      el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
+      el.style.display = 'none';
+      el.style.zIndex = '9999';
+      document.body.appendChild(el);
+
+      function show() { el.style.display = 'block'; document.body.classList.add('ps-moving'); window.uiMoving = true; }
+      function hide() { el.style.display = 'none'; document.body.classList.remove('ps-moving'); window.uiMoving = false; }
+
+      window.addEventListener('palstory:move:start', function(){ show(); });
+      window.addEventListener('palstory:move:complete', function(){ hide(); });
+    } catch (_) {}
+  })();
+
   // Canvas interaction handlers (extracted from game.js init)
   window.UI.onCanvasMouseMove = function (gc, evt) {
     try {

@@ -1,5 +1,6 @@
 <?php
 header("Access-Control-Allow-Origin: *");
+header('Content-Type: application/json');
 
 require_once "./config.php";
 
@@ -53,6 +54,22 @@ if (isset($data['get_room'])) {
   echo json_encode(movePlayer($db, $data, $itemDropRate, $monsterSpawnRate));
 } else if (isset($data['get_resource_info'])) {
   echo json_encode(getResourceInfo($db));
+} else if (isset($data['ping_player'])) {
+  // Lightweight heartbeat to auto-save last_seen without mutating gameplay state
+  $player_name = clean($data['ping_player']);
+  $room_id = intval(clean($data['room_id'] ?? 0));
+  touchPlayer($db, $room_id, $player_name);
+  // Telemetry: log ping (best-effort)
+  try {
+    $details = json_encode([ 'src' => 'client_heartbeat' ]);
+    if ($details === false) { $details = '{"src":"client_heartbeat"}'; }
+    if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'ping', ?)")) {
+      $lg->bind_param("iss", $room_id, $player_name, $details);
+      $lg->execute();
+      $lg->close();
+    }
+  } catch (Throwable $_) { }
+  echo json_encode(["ok"]);
 }
 
 mysqli_close($db);

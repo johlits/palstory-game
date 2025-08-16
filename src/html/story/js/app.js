@@ -41,6 +41,15 @@
       var isMoving = (typeof window.player !== 'undefined' && window.player && window.player.moving) ||
                      (typeof window.anythingMoving === 'function' ? window.anythingMoving() : false);
       if (typeof window.manageIdlePlayersRefresh === 'function') window.manageIdlePlayersRefresh(isMoving);
+
+      // Opportunistic heartbeat when the tab becomes visible
+      try {
+        if (!document.hidden && window.api && typeof window.api.pingPlayer === 'function') {
+          var pn = (document.getElementById('player')||{}).textContent || '';
+          var rid = (document.getElementById('room_id')||{}).textContent || '';
+          if (pn && rid) { window.api.pingPlayer(pn, rid).catch(function(){}); }
+        }
+      } catch(_){ }
     }, { passive: true });
 
     // Load audio preferences and set up BGM unlock
@@ -50,6 +59,20 @@
 
     // Begin game init flow
     if (typeof window.App.initGame === 'function') window.App.initGame();
+
+    // Start lightweight heartbeat timer to auto-save last_seen
+    // Runs every 30s when player and room are known; no gameplay state changed server-side
+    if (!window.__pal_heartbeat_timer) {
+      window.__pal_heartbeat_timer = setInterval(function(){
+        try {
+          if (document.hidden) return; // avoid background spam
+          if (!(window.api && typeof window.api.pingPlayer === 'function')) return;
+          var pn = (document.getElementById('player')||{}).textContent || '';
+          var rid = (document.getElementById('room_id')||{}).textContent || '';
+          if (pn && rid) { window.api.pingPlayer(pn, rid).catch(function(){}); }
+        } catch(_){ }
+      }, 30000);
+    }
   };
 
   // Handle responsive resizing for mobile/desktop

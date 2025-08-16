@@ -154,6 +154,11 @@
 
   function updateGameArea(dt) {
     dt = dt || 1/60;
+    // update smoothed FPS metric for debug HUD
+    if (dt > 0 && dt < 1) {
+      var instFps = 1 / dt;
+      window.__fps = (typeof window.__fps === 'number') ? (window.__fps * 0.9 + instFps * 0.1) : instFps;
+    }
     // Defensive: if the game started but no player object exists yet, create a temporary placeholder at screen center
     if (window.gameStarted && (!window.player || typeof window.player !== 'object')) {
       try {
@@ -204,6 +209,31 @@
       }
       // Render fog-of-war overlay last so undiscovered stays masked
       try { if (window.Fog && typeof window.Fog.render === 'function') { window.Fog.render(window.myGameArea.context); } } catch(_){}
+
+      // Debug HUD (FPS, ping age): toggle with F3 or backtick
+      if (window.__debugHUD) {
+        try {
+          var hud = window.myGameArea.context;
+          hud.save();
+          hud.setTransform(1,0,0,1,0,0);
+          hud.globalAlpha = 0.9;
+          hud.fillStyle = 'rgba(0,0,0,0.55)';
+          hud.strokeStyle = 'rgba(255,255,255,0.85)';
+          hud.lineWidth = 1;
+          var boxW = 180, boxH = 52;
+          hud.fillRect(8, 8, boxW, boxH);
+          hud.strokeRect(8, 8, boxW, boxH);
+          hud.fillStyle = 'white';
+          hud.font = '12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+          var fpsTxt = (typeof window.__fps === 'number') ? (window.__fps.toFixed(1) + ' fps') : 'fps: n/a';
+          var pingAgeMs = (typeof window.__lastPingTs === 'number') ? (Math.max(0, performance.now() - window.__lastPingTs)) : null;
+          var pingTxt = (pingAgeMs !== null) ? ('ping age: ' + Math.round(pingAgeMs) + ' ms') : 'ping age: n/a';
+          hud.fillText('DEBUG', 16, 24);
+          hud.fillText(fpsTxt, 16, 38);
+          hud.fillText(pingTxt, 16, 52);
+          hud.restore();
+        } catch(_){ }
+      }
     }
   }
 
@@ -377,4 +407,19 @@
   }
   window.Engine.startGame = startGame;
   if (typeof window.startGame !== 'function') window.startGame = startGame;
+
+  // One-time global keybinding to toggle debug HUD (F3 or backtick `)
+  if (!window.__boundDebugHUDToggle) {
+    window.__boundDebugHUDToggle = true;
+    try {
+      document.addEventListener('keydown', function(e){
+        var code = e.code || '';
+        if (code === 'F3' || e.key === '`') {
+          window.__debugHUD = !window.__debugHUD;
+          e.preventDefault();
+          try { console.log('Debug HUD:', window.__debugHUD ? 'ON' : 'OFF'); } catch(_){ }
+        }
+      });
+    } catch(_){ }
+  }
 })();

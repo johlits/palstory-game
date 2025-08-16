@@ -5,6 +5,9 @@ function fightMonster($db, $data, $itemDropRate)
   $player_name = clean($data['fight_monster']);
   $room_id = intval(clean($data['room_id']));
 
+  // Heartbeat on combat action
+  touchPlayer($db, $room_id, $player_name);
+
   $sp = $db->prepare("SELECT * 
 				FROM game_players 
 				WHERE room_id = ? AND name = ?");
@@ -35,6 +38,17 @@ function fightMonster($db, $data, $itemDropRate)
         $player_y = intval($rprow["y"]);
         break;
       }
+
+      // Initialize player stat defaults to avoid undefined variable notices
+      $player_lvl = 1;
+      $player_exp = 0;
+      $player_atk = 1;
+      $player_def = 0;
+      $player_spd = 1;
+      $player_evd = 0;
+      $player_hp = 10;
+      $player_maxhp = 10;
+      $player_gold = 0;
 
       $player_stats_parts = explode(';', $player_stats);
       for ($i = 0; $i < count($player_stats_parts); $i++) {
@@ -118,6 +132,33 @@ function fightMonster($db, $data, $itemDropRate)
             break;
           }
 
+          // Telemetry: combat start (best-effort)
+          try {
+            $det0 = json_encode([
+              'player' => $player_name,
+              'room_id' => $room_id,
+              'monster' => [ 'id' => $monster_id, 'name' => $monster_name ],
+              'pos' => [ $player_x, $player_y ]
+            ]);
+            if ($det0 === false) { $det0 = '{"player":"'.addslashes($player_name).'","room_id":'.intval($room_id).',"monster":{"id":'.intval($monster_id).',"name":"'.addslashes($monster_name).'"}}'; }
+            if ($lg0 = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'combat_start', ?)")) {
+              $lg0->bind_param("iss", $room_id, $player_name, $det0);
+              $lg0->execute();
+              $lg0->close();
+            }
+          } catch (Throwable $_) { }
+
+          // Initialize monster defaults to avoid notices if any key is missing
+          $monster_atk = 1;
+          $monster_def = 0;
+          $monster_spd = 1;
+          $monster_evd = 0;
+          $monster_hp = 1;
+          $monster_maxhp = 1;
+          $monster_drops = '';
+          $monster_gold = 0;
+          $monster_exp = 0;
+
           $monster_stats_parts = explode(';', $monster_stats);
           for ($i = 0; $i < count($monster_stats_parts); $i++) {
             if (str_starts_with($monster_stats_parts[$i], "atk=")) {
@@ -158,6 +199,9 @@ function fightMonster($db, $data, $itemDropRate)
           }
 
           // fight here
+          $ticks = 0; // simple action ticks (not strict turns)
+          $playerDamageDealt = 0;
+          $monsterDamageDealt = 0;
           for ($i = min(($player_spd + $itemSpd), $monster_spd); $i <= max(($player_spd + $itemSpd), $monster_spd); $i++) {
             if ($i % $monster_spd == 0) {
 
@@ -167,6 +211,7 @@ function fightMonster($db, $data, $itemDropRate)
                 $monster_force = $monster_def + rand(0, $monster_def);
                 $hit = max(0, $player_force - $monster_force);
                 $monster_hp = $monster_hp - $hit;
+                $playerDamageDealt += $hit;
                 $result["events"][] = array("t" => "player_hit", "dmg" => $hit, "crit" => false, "monster_hp" => max(0, $monster_hp));
                 $result["log"][] = $player_name . " hits for " . $hit . " damage.";
                 if ($monster_hp <= 0) {
@@ -200,7 +245,22 @@ function fightMonster($db, $data, $itemDropRate)
                           $ii->execute();
                           $ii->close();
 
-                          break;
+                          // Telemetry: combat end (lose)
+                  try {
+                    $detl = json_encode([
+                      'outcome' => 'lose',
+                      'player' => $player_name,
+                      'monster' => ['id' => $monster_id, 'name' => $monster_name],
+                      'summary' => [ 'ticks' => $ticks, 'damage_dealt' => $playerDamageDealt, 'damage_taken' => $monsterDamageDealt ]
+                    ]);
+                    if ($detl === false) { $detl = '{"outcome":"lose","player":"'.addslashes($player_name).'","monster":{"id":'.intval($monster_id).',"name":"'.addslashes($monster_name).'"},"summary":{"ticks":'.intval($ticks).',"damage_dealt":'.intval($playerDamageDealt).',"damage_taken":'.intval($monsterDamageDealt).'}}'; }
+                    if ($lgl = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'combat_end', ?)")) {
+                      $lgl->bind_param("iss", $room_id, $player_name, $detl);
+                      $lgl->execute();
+                      $lgl->close();
+                    }
+                  } catch (Throwable $_) { }
+                  break;
                         }
                       }
                     }
@@ -250,6 +310,8 @@ function fightMonster($db, $data, $itemDropRate)
                   $dm->bind_param("i", $monster_id);
                   $dm->execute();
                   $dm->close();
+                  // Touch after win
+                  touchPlayer($db, $room_id, $player_name);
                   $result["outcome"] = "win";
                   $result["monster"] = array(
                     "id" => $monster_id,
@@ -269,6 +331,23 @@ function fightMonster($db, $data, $itemDropRate)
                     "evd" => $player_evd,
                     "gold" => $player_gold
                   );
+
+                  // Telemetry: combat end (win)
+                  try {
+                    $detw = json_encode([
+                      'outcome' => 'win',
+                      'player' => $player_name,
+                      'monster' => ['id' => $monster_id, 'name' => $monster_name],
+                      'rewards' => ['gold' => $monster_gold, 'exp' => $monster_exp],
+                      'summary' => [ 'ticks' => $ticks, 'damage_dealt' => $playerDamageDealt, 'damage_taken' => $monsterDamageDealt ]
+                    ]);
+                    if ($detw === false) { $detw = '{"outcome":"win","player":"'.addslashes($player_name).'","monster":{"id":'.intval($monster_id).',"name":"'.addslashes($monster_name).'"},"rewards":{"gold":'.intval($monster_gold).',"exp":'.intval($monster_exp).'},"summary":{"ticks":'.intval($ticks).',"damage_dealt":'.intval($playerDamageDealt).',"damage_taken":'.intval($monsterDamageDealt).'}}'; }
+                    if ($lgw = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'combat_end', ?)")) {
+                      $lgw->bind_param("iss", $room_id, $player_name, $detw);
+                      $lgw->execute();
+                      $lgw->close();
+                    }
+                  } catch (Throwable $_) { }
                   break;
                 } else {
                   // update monster stats
@@ -298,6 +377,7 @@ function fightMonster($db, $data, $itemDropRate)
                 $player_force = ($player_def + $itemDef) + rand(0, ($player_def + $itemDef));
                 $hit = max(0, $monster_force - $player_force);
                 $player_hp = $player_hp - $hit;
+                $monsterDamageDealt += $hit;
                 $result["events"][] = array("t" => "monster_hit", "dmg" => $hit, "crit" => false, "player_hp" => max(0, $player_hp));
                 $result["log"][] = $monster_name . " hits for " . $hit . " damage.";
                 if ($player_hp <= 0) {
@@ -330,6 +410,8 @@ function fightMonster($db, $data, $itemDropRate)
                   $di->close();
 
                   $result["outcome"] = "lose";
+                  // Touch after defeat/reset
+                  touchPlayer($db, $room_id, $player_name);
                   $result["player"] = array(
                     "name" => $player_name,
                     "lvl" => $player_lvl,
@@ -380,5 +462,6 @@ function fightMonster($db, $data, $itemDropRate)
     }
   }
   $sp->close();
+  // Telemetry: if outcome is terminal (win/lose), it was logged above. If still ongoing, no end event is emitted.
   return $result;
 }

@@ -7,6 +7,36 @@
     // Discovery fade state per tile key "x,y": { p: 0..1 }
     _fade: {},
     _lastTs: 0,
+    _discovered: null, // Set of keys persisted per room/session
+    _saveTimer: null,
+
+    _roomKey: function(){
+      try {
+        var rid = (typeof window.$ === 'function' && typeof $('#room_id') !== 'undefined') ? $('#room_id').text() : (window.room_id || '');
+        return String(rid || '0');
+      } catch(_) { return '0'; }
+    },
+    _persistKey: function(){ return 'palstory_fog_discovered_room_' + this._roomKey(); },
+    _ensureSet: function(){ if (!this._discovered) { this._discovered = new Set(); this._load(); } },
+    _load: function(){
+      try {
+        var raw = localStorage.getItem(this._persistKey());
+        if (!raw) return;
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) { for (var i=0;i<arr.length;i++){ this._discovered.add(arr[i]); } }
+      } catch(_){}
+    },
+    _saveSoon: function(){
+      var self = this; if (self._saveTimer) return;
+      self._saveTimer = setTimeout(function(){ self._saveTimer = null; self._save(); }, 400);
+    },
+    _save: function(){
+      try {
+        if (!this._discovered) return;
+        var arr = Array.from(this._discovered);
+        localStorage.setItem(this._persistKey(), JSON.stringify(arr));
+      } catch(_){}
+    },
 
     // Convert tile (map) coords to current screen-space rect
     _tileToScreenRect: function(tx, ty){
@@ -24,11 +54,30 @@
     _getDiscoveredKeys: function(){
       var out = [];
       try {
+        this._ensureSet();
         if (window.locationsDict) {
           for (var k in window.locationsDict) { if (Object.prototype.hasOwnProperty.call(window.locationsDict, k)) out.push(k); }
         }
+        // merge persisted discoveries
+        if (this._discovered && this._discovered.size) {
+          this._discovered.forEach(function(k){ out.push(k); });
+        }
       } catch(_){ }
       return out;
+    },
+    reset: function(){
+      try {
+        this._fade = {};
+        this._discovered = new Set();
+        localStorage.removeItem(this._persistKey());
+      } catch(_){}
+    },
+    markDiscovered: function(tx, ty){
+      try {
+        this._ensureSet();
+        var k = String(tx) + ',' + String(ty);
+        if (!this._discovered.has(k)) { this._discovered.add(k); this._saveSoon(); }
+      } catch(_){}
     },
     render: function(ctx){
       try {
@@ -86,6 +135,8 @@
           var tx = (window.player_x|0) + Math.round((loc.x - px) / ss);
           var ty = (window.player_y|0) + Math.round((loc.y - py) / ss);
           var key = tx + ',' + ty;
+          // persist discovery
+          this.markDiscovered(tx, ty);
           var st2 = this._fade[key];
           var alpha = st2 ? st2.p : 1;
           if (alpha <= 0) continue;

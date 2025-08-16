@@ -146,6 +146,43 @@ docker-compose up -d
 
 This provides a complete LAMP stack with automatic database initialization - no manual setup required!
 
+### Environment, Ports, and Migration Runner
+
+- Web UI: http://localhost/ (game at `/story`)
+- PHP/Apache port: `80:80` (host:container)
+- MySQL port: `3306:3306` (host:container)
+- Environment variables (see `palstory-lamp/docker-compose.yml`):
+  - `DB_SERVER=database`
+  - `DB_USERNAME=root`
+  - `DB_PASSWORD=tiger`
+  - `DB_NAME=story`
+  - `MIGRATE_TOKEN=change_me_secure_token` (change for prod)
+
+Run database migrations via the token-gated runner:
+
+```
+http://localhost/migration_runner.php?token=change_me_secure_token
+```
+
+Safe to run multiple times; the runner applies only pending migrations.
+
+### Health and Admin Endpoints
+
+- Health check: `http://localhost/health.php` → JSON `{ status: "ok" }` when DB is reachable
+- Admin players (requires token):
+  - `http://localhost/admin_players.php?token=CHANGE_ME`
+- Admin logs (requires token):
+  - `http://localhost/admin_logs.php?token=CHANGE_ME&limit=200`
+- Admin dashboard (HTML UI):
+  - `http://localhost/admin.html` (enter MIGRATE_TOKEN to view data)
+
+### Heartbeat and Telemetry
+
+- Client sends a lightweight heartbeat every ~30s when the tab is visible.
+- Server route `ping_player` updates `game_players.last_seen`.
+- Telemetry table `game_logs` records basic events (e.g., `ping`, `move_intent`).
+  - See migrations `migrations/0003_add_last_seen.sql` and `migrations/0004_add_telemetry.sql`.
+
 ## Contributing
 
 1. Fork the repository

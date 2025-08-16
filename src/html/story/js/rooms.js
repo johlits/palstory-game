@@ -41,24 +41,31 @@
   }
 
   function getRoomUIFlow() {
-    try { console.log('getting room..'); } catch(_){}
+    try { console.log('getting room..'); } catch(_){ }
     return getRoom($("#room").text())
       .then(function (response) {
         if (!response || response.length === 0) {
-          try { if (window.UI && window.UI.showCreateRoomBox) window.UI.showCreateRoomBox(); } catch(_){}
+          try { if (window.UI && window.UI.showCreateRoomBox) window.UI.showCreateRoomBox(); } catch(_){ }
           return;
         }
         if (response[0].name === "") {
-          try { if (window.UI && window.UI.showCreateRoomBox) window.UI.showCreateRoomBox(); } catch(_){}
+          try { if (window.UI && window.UI.showCreateRoomBox) window.UI.showCreateRoomBox(); } catch(_){ }
           return;
         }
-        $("#room_id").text(response[0].id);
+        var prevId = 0;
+        try { prevId = parseInt($("#room_id").text(), 10) || 0; } catch(_) { prevId = 0; }
+        var newId = parseInt(response[0].id, 10) || 0;
+        // If room changed, reset fog-of-war persistence
+        if (newId && newId !== prevId) {
+          try { if (window.Fog && typeof window.Fog.reset === 'function') window.Fog.reset(); } catch(_){}
+        }
+        $("#room_id").text(newId);
         $("#room_expire").text(response[0].expiration);
         $("#room_regen").text(response[0].regen);
-        try { if (window.Players && window.Players.getPlayerUIFlow) return window.Players.getPlayerUIFlow(true); } catch(_){}
+        try { if (window.Players && window.Players.getPlayerUIFlow) return window.Players.getPlayerUIFlow(true); } catch(_){ }
       })
       .catch(function (err) {
-        try { console.error('error: ' + err); } catch(_){}
+        try { console.error('error: ' + err); } catch(_){ }
       });
   }
 

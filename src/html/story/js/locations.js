@@ -3,8 +3,18 @@
 (function () {
   if (!window.Locations) window.Locations = {};
 
+  var _lastNeighborsTs = 0;
+  var _debounceMs = 150;
+  var _inFlight = false;
+  var _queued = null;
+  var _debounceTimer = null;
+  function _now(){ try { return performance.now(); } catch(_){ return Date.now(); } }
+
   function ensureAdjacentTilesVisible(cx, cy) {
     if (!window.player) return; // player not ready yet
+    var now = _now();
+    if (now - _lastNeighborsTs < 100) return; // throttle to 10 Hz
+    _lastNeighborsTs = now;
     var room_id = $("#room_id").text();
     var neighbors = [
       { dx: 1, dy: 0 },
@@ -52,18 +62,38 @@
   }
 
   function getAllLocations(newX, newY, dX, dY) {
+    // Debounce/concurrency control: coalesce rapid calls and only run last one
+    var args = Array.prototype.slice.call(arguments);
+    var now = _now();
+    if (_inFlight || (now - (getAllLocations._lastCallTs || 0) < _debounceMs)) {
+      _queued = args; // keep the most recent args
+      if (!_debounceTimer) {
+        _debounceTimer = setTimeout(function(){
+          _debounceTimer = null;
+          if (_inFlight) return; // will be handled on completion
+          var q = _queued; _queued = null;
+          if (q) getAllLocations.apply(null, q);
+        }, _debounceMs);
+      }
+      return;
+    }
+    getAllLocations._lastCallTs = now;
+    _inFlight = true;
     console.log("get all locations..");
     var roomId = $("#room_id").text();
     if (!(window.api && typeof window.api.getAllLocations === 'function')) return;
+    // Begin a new load cycle
+    try { window.locationsLoaded = false; } catch(_){}
 
     window.api.getAllLocations(roomId)
       .then(function (response) {
-        if (response && response.length > 0) {
+        var list = Array.isArray(response) ? response : [];
+        if (list.length > 0) {
           locations = [];
           locationsDict = {};
           var baseX = (window.player && typeof window.player.x === 'number') ? window.player.x : (w / 2);
           var baseY = (window.player && typeof window.player.y === 'number') ? window.player.y : (h / 2);
-          $.each(response, function (index, item) {
+          $.each(list, function (index, item) {
             loadImageQueued(getImageUrl(item.image));
             var landscape = new component(
               -1,
@@ -128,6 +158,16 @@
       })
       .catch(function (err) {
         console.error("error: " + err);
+        try { if (window.locationsLoaded !== true) window.locationsLoaded = true; } catch(_){}
+      })
+      .finally(function(){
+        _inFlight = false;
+        try { if (window.locationsLoaded !== true) window.locationsLoaded = true; } catch(_){}
+        var q = _queued; _queued = null;
+        if (q) { // run the latest queued call after current completes
+          // slight delay to allow UI to settle
+          setTimeout(function(){ getAllLocations.apply(null, q); }, _debounceMs);
+        }
       });
   }
 

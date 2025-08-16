@@ -154,3 +154,16 @@ function verifyLocationStats($locationStats)
 {
   return $locationStats . ";";
 }
+
+// Heartbeat helper: update player's last_seen timestamp for auto-save/session tracking
+function touchPlayer($db, $room_id, $player_name)
+{
+  if (!$db) return;
+  // Only bump last_seen if it's older than 5 seconds to reduce write churn
+  $q = $db->prepare("UPDATE game_players SET last_seen = CURRENT_TIMESTAMP WHERE room_id = ? AND name = ? AND (last_seen IS NULL OR last_seen < (NOW() - INTERVAL 5 SECOND))");
+  if ($q) {
+    $q->bind_param("is", $room_id, $player_name);
+    $q->execute();
+    $q->close();
+  }
+}

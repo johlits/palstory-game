@@ -65,6 +65,19 @@ function createPlayer($db, $data)
     $is->bind_param("siiisi", $name, $room_id, $x, $y, $stats, $portrait);
     if ($is->execute()) {
       array_push($arr, "ok");
+      // Touch right after creation
+      touchPlayer($db, $room_id, $name);
+
+      // Telemetry: player created
+      try {
+        $det = json_encode([ 'room_id' => $room_id, 'portrait' => $portrait ]);
+        if ($det === false) { $det = '{"room_id":'.intval($room_id).',"portrait":'.intval($portrait).'}'; }
+        if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'player_create', ?)")) {
+          $lg->bind_param("iss", $room_id, $name, $det);
+          $lg->execute();
+          $lg->close();
+        }
+      } catch (Throwable $_) { }
 
       // Ensure the spawn tile (0,0) and its four adjacent tiles exist at player creation
       // Create center tile if missing (diffx=0,diffy=0 to avoid monster spawn)
@@ -141,6 +154,27 @@ function dropItem($db, $data)
 
   if ($di->execute()) {
     array_push($arr, "ok");
+    // Touch owner
+    $q = $db->prepare("SELECT name, room_id FROM game_players WHERE id = ?");
+    $q->bind_param("i", $player_id);
+    if ($q->execute()) { 
+      $res = $q->get_result(); 
+      if ($row = mysqli_fetch_array($res)) { 
+        $room_id = intval($row['room_id']); $player_name = $row['name'];
+        touchPlayer($db, $room_id, $player_name);
+        // Telemetry: item_drop
+        try {
+          $det = json_encode([ 'item_id' => $item_id, 'player_id' => $player_id ]);
+          if ($det === false) { $det = '{"item_id":'.intval($item_id).',"player_id":'.intval($player_id).'}'; }
+          if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'item_drop', ?)")) {
+            $lg->bind_param("iss", $room_id, $player_name, $det);
+            $lg->execute();
+            $lg->close();
+          }
+        } catch (Throwable $_) { }
+      }
+    }
+    $q->close();
   } else {
     array_push($arr, "err");
   }
@@ -160,6 +194,27 @@ function unequipItem($db, $data)
 
   if ($ui->execute()) {
     array_push($arr, "ok");
+    // Touch owner
+    $q = $db->prepare("SELECT name, room_id FROM game_players WHERE id = ?");
+    $q->bind_param("i", $player_id);
+    if ($q->execute()) { 
+      $res = $q->get_result(); 
+      if ($row = mysqli_fetch_array($res)) { 
+        $room_id = intval($row['room_id']); $player_name = $row['name'];
+        touchPlayer($db, $room_id, $player_name);
+        // Telemetry: item_unequip
+        try {
+          $det = json_encode([ 'item_id' => $item_id, 'player_id' => $player_id ]);
+          if ($det === false) { $det = '{"item_id":'.intval($item_id).',"player_id":'.intval($player_id).'}'; }
+          if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'item_unequip', ?)")) {
+            $lg->bind_param("iss", $room_id, $player_name, $det);
+            $lg->execute();
+            $lg->close();
+          }
+        } catch (Throwable $_) { }
+      }
+    }
+    $q->close();
   } else {
     array_push($arr, "err");
   }
@@ -222,6 +277,27 @@ function equipItem($db, $data)
 
     if ($ui->execute()) {
       array_push($arr, "ok");
+      // Touch owner
+      $q = $db->prepare("SELECT name, room_id FROM game_players WHERE id = ?");
+      $q->bind_param("i", $player_id);
+      if ($q->execute()) { 
+        $res = $q->get_result(); 
+        if ($row = mysqli_fetch_array($res)) { 
+          $room_id = intval($row['room_id']); $player_name = $row['name'];
+          touchPlayer($db, $room_id, $player_name);
+          // Telemetry: item_equip
+          try {
+            $det = json_encode([ 'item_id' => $item_id, 'player_id' => $player_id, 'item_type' => $item_type ]);
+            if ($det === false) { $det = '{"item_id":'.intval($item_id).',"player_id":'.intval($player_id).',"item_type":"'.addslashes($item_type).'"}'; }
+            if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'item_equip', ?)")) {
+              $lg->bind_param("iss", $room_id, $player_name, $det);
+              $lg->execute();
+              $lg->close();
+            }
+          } catch (Throwable $_) { }
+        }
+      }
+      $q->close();
     } else {
       array_push($arr, "err");
     }

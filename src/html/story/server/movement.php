@@ -182,6 +182,34 @@ function movePlayer($db, $data, $itemDropRate, $monsterSpawnRate)
   $x = intval(clean($data['x']));
   $y = intval(clean($data['y']));
 
+  // Basic rate limit: max 5 move requests per second per player (best-effort)
+  try {
+    if ($rl = $db->prepare("SELECT COUNT(*) AS c FROM game_logs WHERE player_name = ? AND action IN ('move_intent','move_resolved') AND ts > (NOW() - INTERVAL 1 SECOND)")) {
+      $rl->bind_param("s", $player_name);
+      if ($rl->execute()) {
+        $res = $rl->get_result();
+        if ($row = $res->fetch_assoc()) {
+          if (intval($row['c']) >= 5) { $rl->close(); return array('err', 'rate_limited'); }
+        }
+      }
+      $rl->close();
+    }
+  } catch (Throwable $_) { /* ignore */ }
+
+  // Heartbeat on movement intent
+  touchPlayer($db, $room_id, $player_name);
+
+  // Telemetry: log movement intent (best-effort)
+  try {
+    $details = json_encode([ 'x' => $x, 'y' => $y ]);
+    if ($details === false) { $details = '{"x":'.intval($x).',"y":'.intval($y).'}'; }
+    if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'move_intent', ?)")) {
+      $lg->bind_param("iss", $room_id, $player_name, $details);
+      $lg->execute();
+      $lg->close();
+    }
+  } catch (Throwable $_) { }
+
   $ss = $db->prepare("SELECT * 
 				FROM game_players 
 				WHERE name = ? AND room_id = ?");
@@ -222,10 +250,31 @@ function movePlayer($db, $data, $itemDropRate, $monsterSpawnRate)
 
         if ($canMove) {
           $arr = performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $player_name, $prevx, $prevy);
-
+          // Telemetry: resolved move (ok/err) with dx,dy and draw flag when available
+          try {
+            $dx = isset($arr[1]) ? intval($arr[1]) : 0; $dy = isset($arr[2]) ? intval($arr[2]) : 0; $res = (isset($arr[0]) && $arr[0] === 'ok') ? 'ok' : 'err';
+            $draw = isset($arr[3]) ? strval($arr[3]) : '';
+            $det = json_encode([ 'from' => [$prevx,$prevy], 'to' => [$x,$y], 'dx' => $dx, 'dy' => $dy, 'result' => $res, 'draw' => $draw ]);
+            if ($det === false) { $det = '{"dx":'.intval($dx).',"dy":'.intval($dy).',"result":"'.($res).'"}'; }
+            if ($lg2 = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'move_resolved', ?)")) {
+              $lg2->bind_param("iss", $room_id, $player_name, $det);
+              $lg2->execute();
+              $lg2->close();
+            }
+          } catch (Throwable $_) { }
         } else {
           $data['fight_monster'] = $player_name;
           $arr = fightMonster($db, $data, $itemDropRate); // return structured fight object
+          // Telemetry: movement blocked by fight roll
+          try {
+            $det2 = json_encode([ 'from' => [$prevx,$prevy], 'attempt' => [$x,$y] ]);
+            if ($det2 === false) { $det2 = '{"from":['.intval($prevx).','.intval($prevy).'],"attempt":['.intval($x).','.intval($y).']}' ; }
+            if ($lg3 = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'move_blocked_fight', ?)")) {
+              $lg3->bind_param("iss", $room_id, $player_name, $det2);
+              $lg3->execute();
+              $lg3->close();
+            }
+          } catch (Throwable $_) { }
         }
       }
     }

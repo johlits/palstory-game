@@ -76,6 +76,11 @@
     // Rooms
     createRoom: function (name, expiration, regen) {
       return _req({ create_room: name, expiration: expiration, regen: regen });
+    },
+
+    // Heartbeat
+    pingPlayer: function(playerName, roomId) {
+      return _req({ ping_player: playerName, room_id: roomId });
     }
   };
 

@@ -2,6 +2,17 @@
 (function(){
   'use strict';
 
+  // Movement state: single buffered direction and enable flag
+  var state = {
+    bufferedDir: null,
+    enabled: true,
+    cooldownUntil: 0,
+  };
+
+  function dispatch(evtName, detail) {
+    try { window.dispatchEvent(new CustomEvent('palstory:' + evtName, { detail: detail || {} })); } catch(_) {}
+  }
+
   function ensureAdj(x, y) {
     if (window.Locations && typeof window.Locations.ensureAdjacentTilesVisible === 'function') {
       window.Locations.ensureAdjacentTilesVisible(x, y);
@@ -36,15 +47,22 @@
   }
 
   function move(dir) {
+    // Disable movement when tab hidden
+    if (document.hidden) return;
+    if (!state.enabled) return;
+
+    // If something is moving, buffer a single intent
     if (window.player && (window.player.moving || (typeof window.anythingMoving === 'function' && window.anythingMoving()))) {
+      if (!state.bufferedDir) { state.bufferedDir = dir; }
       return;
     }
-    if (window.canMove !== true) return;
+    if (window.canMove !== true) { if (!state.bufferedDir) { state.bufferedDir = dir; } return; }
     if (!window.player) { console.warn('move ignored: player not ready'); return; }
 
     console.log('move ' + dir);
     refreshPlayers();
     window.canMove = false;
+    dispatch('move:start', { dir: dir, x: window.player_x, y: window.player_y });
 
     var room_id = $('#room_id').text();
     var nx = window.player_x;
@@ -106,12 +124,12 @@
                   window.locations.push(landscape);
                   window.locationsDict['' + resp[0].x + ',' + resp[0].y] = landscape;
                   ensureAdj(window.player_x, window.player_y);
-                  getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; });
+                  getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'draw', x: window.player_x, y: window.player_y }); maybeFlushBuffer(); });
                 } else {
-                  window.canMove = true;
+                  window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); maybeFlushBuffer();
                 }
               },
-              error: function () { window.canMove = true; }
+              error: function () { window.canMove = true; dispatch('move:complete', { result: 'error' }); maybeFlushBuffer(); }
             });
           } else {
             var location = window.locationsDict['' + window.player_x + ',' + window.player_y];
@@ -121,7 +139,7 @@
             } else {
               console.log('no new location, but get monsters');
               ensureAdj(window.player_x, window.player_y);
-              getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; });
+              getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); maybeFlushBuffer(); });
             }
           }
         } else if ((Array.isArray(response) && response[0] === 'fight') || (response && typeof response === 'object' && !Array.isArray(response) && response.type === 'fight')) {
@@ -129,14 +147,51 @@
             window.handleFightResponse(response, { fromMove: true });
           }
         } else {
-          window.canMove = true;
+          window.canMove = true; dispatch('move:complete', { result: 'err' });
+          try {
+            if (response && response[1] === 'rate_limited') {
+              state.cooldownUntil = Date.now() + 250; // brief backoff
+              setTimeout(maybeFlushBuffer, 260);
+            } else {
+              maybeFlushBuffer();
+            }
+          } catch (e) { maybeFlushBuffer(); }
           try { console.error(response && response[1]); } catch (e) {}
         }
       },
-      error: function () { window.canMove = true; }
+      error: function () { window.canMove = true; dispatch('move:complete', { result: 'error' }); maybeFlushBuffer(); }
     });
   }
 
+  function maybeFlushBuffer() {
+    if (document.hidden || !state.enabled) { state.bufferedDir = null; return; }
+    if (state.cooldownUntil && Date.now() < state.cooldownUntil) { return; }
+    if (!state.bufferedDir) return;
+    // Try to fire immediately if idle; otherwise retry shortly
+    var dir = state.bufferedDir;
+    if (window.canMove === true && window.player && !window.player.moving && !(typeof window.anythingMoving === 'function' && window.anythingMoving())) {
+      state.bufferedDir = null;
+      move(dir);
+    } else {
+      // Retry once after a frame (~50ms)
+      setTimeout(function(){
+        if (window.canMove === true && window.player && !window.player.moving && !(typeof window.anythingMoving === 'function' && window.anythingMoving())) {
+          var d = state.bufferedDir; state.bufferedDir = null; if (d) move(d);
+        }
+      }, 50);
+    }
+  }
+
+  // Visibility handling: disable moves while hidden
+  document.addEventListener('visibilitychange', function(){
+    state.enabled = !document.hidden;
+    if (document.hidden) {
+      state.bufferedDir = null; // drop buffer when hidden
+    }
+  });
+
   if (!window.Movement) window.Movement = {};
   window.Movement.move = move;
+  window.Movement.flush = maybeFlushBuffer;
+  window.Movement.state = state;
 })();

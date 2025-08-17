@@ -212,11 +212,13 @@
       if (btn.classList) btn.classList.add('hidden'); else btn.style.display = 'none';
       var key = '' + cx + ',' + cy;
       var tile = (window.locationsDict && window.locationsDict[key]) ? window.locationsDict[key] : null;
-      var gstats = tile && tile.gstats ? ('' + tile.gstats) : '';
+      var gstats = (tile && typeof tile.gstats !== 'undefined') ? ('' + tile.gstats) : undefined;
       var gatherable = /(^|;)gather=1(;|$)/.test(gstats);
       if (gatherable) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; return; }
-      // If we don't have gstats yet, fetch the current tile to update it
-      if ((!tile || !tile.gstats) && window.api && typeof window.api.getLocation === 'function') {
+      // If gstats explicitly says not gatherable, keep hidden and do not fetch
+      if (typeof gstats === 'string' && /(^|;)gather=0(;|$)/.test(gstats)) { return; }
+      // If we truly don't have gstats yet (undefined), fetch the current tile to update it
+      if ((!tile || typeof tile.gstats === 'undefined') && window.api && typeof window.api.getLocation === 'function') {
         var room_id = $('#room_id').text();
         window.api.getLocation(room_id, cx, cy).then(function(resp){
           if (resp && resp.length > 0) {
@@ -229,7 +231,7 @@
               locationsDict[key] = landscape;
               tile = landscape;
             }
-            try { tile.gstats = resp[0].gstats || ''; } catch(_) { tile.gstats = ''; }
+            try { tile.gstats = (typeof resp[0].gstats !== 'undefined') ? (resp[0].gstats || '') : ''; } catch(_) { tile.gstats = ''; }
             var gs2 = tile.gstats || '';
             if (/(^|;)gather=1(;|$)/.test('' + gs2)) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; }
           }
@@ -277,7 +279,8 @@
                   // Not gatherable: hide button for this tile
                   try {
                     var key0 = '' + window.player_x + ',' + window.player_y;
-                    if (window.locationsDict && window.locationsDict[key0]) { window.locationsDict[key0].gstats = ''; }
+                    if (window.locationsDict && window.locationsDict[key0]) { window.locationsDict[key0].gstats = 'gather=0'; }
+                    var btn0 = document.getElementById('gatherBtn'); if (btn0) { if (btn0.classList) btn0.classList.add('hidden'); else btn0.style.display = 'none'; }
                     Locations.updateGatherButton(window.player_x, window.player_y);
                   } catch(_) {}
                 } else if (resp[0] === 'blocked_by_monster') {
@@ -289,14 +292,28 @@
                   // Not gatherable: hide button for this tile
                   try {
                     var key1 = '' + window.player_x + ',' + window.player_y;
-                    if (window.locationsDict && window.locationsDict[key1]) { window.locationsDict[key1].gstats = ''; }
+                    if (window.locationsDict && window.locationsDict[key1]) { window.locationsDict[key1].gstats = 'gather=0'; }
+                    var btn1 = document.getElementById('gatherBtn'); if (btn1) { if (btn1.classList) btn1.classList.add('hidden'); else btn1.style.display = 'none'; }
                     Locations.updateGatherButton(window.player_x, window.player_y);
                   } catch(_) {}
                 } else if (resp[0] === 'err_db' || resp[0] === 'err') {
                   msg = 'Something went wrong while gathering. Please try again.';
                 }
+              } else if (typeof resp === 'string') {
+                // Some servers may return a plain message string; use it directly
+                msg = resp;
               }
               box.textContent = msg;
+              // If the final message indicates no useful resources, hide the button as a fallback
+              try {
+                var lower = ('' + msg).toLowerCase();
+                if (lower.indexOf('there is nothing useful to gather here') !== -1 ||
+                    lower.indexOf('there is nothing to gather here') !== -1) {
+                  var keyN = '' + window.player_x + ',' + window.player_y;
+                  if (window.locationsDict && window.locationsDict[keyN]) { window.locationsDict[keyN].gstats = 'gather=0'; }
+                  Locations.updateGatherButton(window.player_x, window.player_y);
+                }
+              } catch(_) {}
               // Use success vs error sound
               if (typeof window.playSound === 'function') {
                 if (Array.isArray(resp) && resp[0] === 'ok') { window.playSound(window.getImageUrl('coin.mp3')); }

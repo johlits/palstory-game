@@ -362,6 +362,28 @@
         case 38: case 87: if (window.Movement && typeof Movement.move === 'function') Movement.move("up"); break;
         case 39: case 68: if (window.Movement && typeof Movement.move === 'function') Movement.move("right"); break;
         case 40: case 83: if (window.Movement && typeof Movement.move === 'function') Movement.move("down"); break;
+        case 13: {
+          // Enter: close any open primary dialogs (win/gather) or confirm defeat
+          var handled = false;
+          try {
+            var winDlg = document.getElementById('win-dialog');
+            if (winDlg && winDlg.open) { try { playSound(getImageUrl('click.mp3')); } catch(_) {} winDlg.close(); handled = true; }
+          } catch(_) {}
+          try {
+            if (!handled) {
+              var gDlg = document.getElementById('gather-dialog');
+              if (gDlg && gDlg.open) { try { playSound(getImageUrl('click.mp3')); } catch(_) {} gDlg.close(); handled = true; }
+            }
+          } catch(_) {}
+          try {
+            if (!handled) {
+              var loseDlg = document.getElementById('lose-dialog');
+              if (loseDlg && loseDlg.open) { try { playSound(getImageUrl('click.mp3')); } catch(_) {} if (window.UI && typeof UI.gameOver === 'function') UI.gameOver(); handled = true; }
+            }
+          } catch(_) {}
+          if (handled) { try { event.preventDefault(); } catch(_) {} }
+          break;
+        }
         case 67: if (window.UI && typeof UI.toggleStats === 'function') UI.toggleStats(); break;
         case 73: if (window.UI && typeof UI.toggleItemsTable === 'function') UI.toggleItemsTable(); break;
         case 90: if (window.UI && typeof UI.toggleLocationInfo === 'function') UI.toggleLocationInfo(); break;

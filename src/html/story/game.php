@@ -65,6 +65,18 @@
 </section>
 
 <section>
+  <dialog class="nes-dialog is-dark is-rounded" id="gather-dialog">
+    <form method="dialog">
+      <p class="title">Gather</p>
+      <div id="gatherBox">You search the area...</div>
+      <menu class="dialog-menu">
+        <button class="nes-btn is-primary" onclick="playSound(getImageUrl('click.mp3'));"><span>Okay</span></button>
+      </menu>
+    </form>
+  </dialog>
+</section>
+
+<section>
   <dialog class="nes-dialog is-dark is-rounded" id="help-dialog">
     <form method="dialog">
       <p class="title">Help</p>
@@ -166,13 +178,15 @@
   <table class="nes-table is-bordered is-dark" id="items_table_body">
   <thead>
       <tr>
+        <th>Image</th>
         <th>Name</th>
         <th>ATK</th>
         <th>DEF</th>
         <th>SPD</th>
         <th>EVD</th>
+        <th>Type</th>
         <th>Equip</th>
-        <th>Remove</th>
+        <th>Drop</th>
       </tr>
     </thead>
     <tbody>
@@ -230,6 +244,7 @@
   <button id="locationStatsPrimaryBtn" type="button" class="nes-btn is-primary" onclick="UI.toggleLocationStats()">Stats</button>
   <button id="moveDisabledBtn" type="button" class="nes-btn is-disabled">Move</button>
   <button id="moveSuccessBtn" type="button" class="nes-btn is-success" onclick="Movement.move(window.moveDirection)">Move</button>
+  <button id="gatherBtn" type="button" class="nes-btn hidden" onclick="Locations.gather()">Gather</button>
 </div>
   </div>
 

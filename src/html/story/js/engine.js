@@ -127,13 +127,8 @@
               ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1; ctx.strokeRect(barX, barY, barW, barH);
             }
           }
-          if (this.meta === 1 && !this.moving && window.player_x === 0 && window.player_y === 0) {
-            ctx.font = '20px Arial'; ctx.fillStyle = 'yellow';
-            ctx.strokeText(window.moveInstructions, this.x + ss / 2, this.y + ss * 2.4);
-            ctx.fillText(window.moveInstructions, this.x + ss / 2, this.y + ss * 2.4);
-            ctx.strokeText(window.helpInstructions, this.x + ss / 2, this.y + ss * 2.4 + ss * 0.4);
-            ctx.fillText(window.helpInstructions, this.x + ss / 2, this.y + ss * 2.4 + ss * 0.4);
-          }
+          // First-tile help moved to UI overlay (always-on-top). Keep canvas clean here.
+          // Overlay is controlled each frame in updateGameArea.
         }
       } else {
         ctx.fillStyle = color; ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -209,6 +204,14 @@
       }
       // Render fog-of-war overlay last so undiscovered stays masked
       try { if (window.Fog && typeof window.Fog.render === 'function') { window.Fog.render(window.myGameArea.context); } } catch(_){}
+
+      // Toggle topmost Help overlay when standing on the starting tile (0,0)
+      try {
+        var onStart = (window.player_x === 0 && window.player_y === 0 && window.player && !window.player.moving);
+        if (window.UI && typeof window.UI.setHelpOverlayVisible === 'function') {
+          window.UI.setHelpOverlayVisible(onStart, window.moveInstructions, window.helpInstructions);
+        }
+      } catch(_) {}
 
       // Debug HUD (FPS, ping age): toggle with F3 or backtick
       if (window.__debugHUD) {

@@ -54,6 +54,8 @@ if (isset($data['get_room'])) {
   echo json_encode(movePlayer($db, $data, $itemDropRate, $monsterSpawnRate));
 } else if (isset($data['get_resource_info'])) {
   echo json_encode(getResourceInfo($db));
+} else if (isset($data['gather_resource'])) {
+  echo json_encode(gatherResource($db, $data, $itemDropRate));
 } else if (isset($data['ping_player'])) {
   // Lightweight heartbeat to auto-save last_seen without mutating gameplay state
   $player_name = clean($data['ping_player']);

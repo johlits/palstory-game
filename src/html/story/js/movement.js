@@ -50,6 +50,10 @@
     // Disable movement when tab hidden
     if (document.hidden) return;
     if (!state.enabled) return;
+    // Validate direction
+    if (!(dir === 'up' || dir === 'down' || dir === 'left' || dir === 'right')) {
+      return;
+    }
 
     // If something is moving, buffer a single intent
     if (window.player && (window.player.moving || (typeof window.anythingMoving === 'function' && window.anythingMoving()))) {
@@ -124,9 +128,9 @@
                   window.locations.push(landscape);
                   window.locationsDict['' + resp[0].x + ',' + resp[0].y] = landscape;
                   ensureAdj(window.player_x, window.player_y);
-                  getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'draw', x: window.player_x, y: window.player_y }); maybeFlushBuffer(); });
+                  getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
                 } else {
-                  window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); maybeFlushBuffer();
+                  window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer();
                 }
               },
               error: function () { window.canMove = true; dispatch('move:complete', { result: 'error' }); maybeFlushBuffer(); }
@@ -139,7 +143,7 @@
             } else {
               console.log('no new location, but get monsters');
               ensureAdj(window.player_x, window.player_y);
-              getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); maybeFlushBuffer(); });
+              getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
             }
           }
         } else if ((Array.isArray(response) && response[0] === 'fight') || (response && typeof response === 'object' && !Array.isArray(response) && response.type === 'fight')) {

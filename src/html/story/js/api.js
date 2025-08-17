@@ -73,6 +73,10 @@
     dropItem: function (itemId, playerId) {
       return _req({ drop_item: itemId, player_id: playerId });
     },
+    // Gathering
+    gatherResource: function(playerName, roomId) {
+      return _req({ gather_resource: playerName, room_id: roomId });
+    },
     // Rooms
     createRoom: function (name, expiration, regen) {
       return _req({ create_room: name, expiration: expiration, regen: regen });

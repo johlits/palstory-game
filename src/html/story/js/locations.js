@@ -51,6 +51,8 @@
                 3
               );
               locations.push(landscape);
+              // attach per-tile game stats (gstats) for UI logic like gather availability
+              try { landscape.gstats = response[0].gstats || ""; } catch(_) { landscape.gstats = ""; }
               locationsDict[key] = landscape;
             }
           })
@@ -109,6 +111,7 @@
               3
             );
             locations.push(landscape);
+            try { landscape.gstats = item.gstats || ""; } catch(_) { landscape.gstats = ""; }
             locationsDict["" + item.x + "," + item.y] = landscape;
           });
           locationsLoaded = true;
@@ -116,11 +119,12 @@
             if (window.player) { ensureAdjacentTilesVisible(player_x, player_y); }
             canMove = true;
             if (window.player) {
-              if (typeof move === 'function') { move("na"); }
               if (typeof center === 'function') { center(); }
             }
+            try { if (window.player) Locations.showLocationBox(window.player_x, window.player_y); } catch(_) {}
           } else {
             ensureAdjacentTilesVisible(newX, newY);
+            try { Locations.showLocationBox(newX, newY); } catch(_) {}
             if (window.Monsters && typeof window.Monsters.getMonsters === 'function') {
               window.Monsters.getMonsters(newX, newY);
             } else if (typeof getMonsters === 'function') {
@@ -132,6 +136,8 @@
               preloadNearbyMonsters(newX, newY);
             }
           }
+          // After locations are loaded, update Gather button based on current tile
+          try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
         } else {
           locationsLoaded = true;
           if (newX === null) {
@@ -154,6 +160,7 @@
               preloadNearbyMonsters(newX, newY);
             }
           }
+          try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
         }
       })
       .catch(function (err) {
@@ -173,4 +180,133 @@
 
   window.Locations.ensureAdjacentTilesVisible = ensureAdjacentTilesVisible;
   window.Locations.getAllLocations = getAllLocations;
+  // Populate #location_box for a given tile (defaults to current tile)
+  window.Locations.showLocationBox = function(cx, cy){
+    try {
+      var x = (typeof cx === 'number') ? cx : window.player_x;
+      var y = (typeof cy === 'number') ? cy : window.player_y;
+      var key = '' + x + ',' + y;
+      var location = (window.locationsDict && window.locationsDict[key]) ? window.locationsDict[key] : null;
+      if (!location) return;
+      if (window.UI && typeof window.UI.showEl === 'function') { window.UI.showEl('#location_box'); }
+      else { try { $('#location_box').removeClass('hidden'); } catch(_) {} }
+      try { $(".location_name").text(location.name); } catch(_) {}
+      try { $("#location_image").attr("src", location.image.currentSrc); } catch(_) {}
+      try { $("#location_description").text(location.description); } catch(_) {}
+      try {
+        var location_stats = location.stats || '';
+        var location_fields = String(location_stats).split(";");
+        var spawnsText = 'None';
+        for (var i = 0; i < location_fields.length; i++) {
+          var field = location_fields[i];
+          if (field.indexOf('spawns') === 0) { spawnsText = field.split('=')[1].split(',').join(', '); break; }
+        }
+        $("#location_spawns").text(spawnsText);
+      } catch(_) {}
+    } catch(_) {}
+  };
+  window.Locations.updateGatherButton = function(cx, cy){
+    try {
+      var btn = document.getElementById('gatherBtn'); if (!btn) return;
+      // default hide
+      if (btn.classList) btn.classList.add('hidden'); else btn.style.display = 'none';
+      var key = '' + cx + ',' + cy;
+      var tile = (window.locationsDict && window.locationsDict[key]) ? window.locationsDict[key] : null;
+      var gstats = tile && tile.gstats ? ('' + tile.gstats) : '';
+      var gatherable = /(^|;)gather=1(;|$)/.test(gstats);
+      if (gatherable) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; return; }
+      // If we don't have gstats yet, fetch the current tile to update it
+      if ((!tile || !tile.gstats) && window.api && typeof window.api.getLocation === 'function') {
+        var room_id = $('#room_id').text();
+        window.api.getLocation(room_id, cx, cy).then(function(resp){
+          if (resp && resp.length > 0) {
+            // ensure dict entry exists and attach gstats
+            if (!tile) {
+              var baseX = (window.player && typeof window.player.x === 'number') ? window.player.x : (w / 2);
+              var baseY = (window.player && typeof window.player.y === 'number') ? window.player.y : (h / 2);
+              var landscape = new component(-1, ss, ss, getImageUrl(resp[0].image), baseX, baseY, 'image', resp[0].name, resp[0].description, resp[0].stats, 3);
+              locations.push(landscape);
+              locationsDict[key] = landscape;
+              tile = landscape;
+            }
+            try { tile.gstats = resp[0].gstats || ''; } catch(_) { tile.gstats = ''; }
+            var gs2 = tile.gstats || '';
+            if (/(^|;)gather=1(;|$)/.test('' + gs2)) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; }
+          }
+        }).catch(function(_){});
+      }
+    } catch (e) { /* noop */ }
+  };
+  window.Locations.gather = function() {
+    try {
+      var playerName = $("#player").text();
+      var roomId = $("#room_id").text();
+      if (!window.api || typeof window.api.gatherResource !== 'function') return;
+      if (typeof window.playSound === 'function') { window.playSound(window.getImageUrl("click.mp3")); }
+      window.api.gatherResource(playerName, roomId)
+        .then(function(resp){
+          console.log('gather resp', resp);
+          if (window.Items && typeof window.Items.getItems === 'function') {
+            window.Items.getItems();
+          }
+          var wasOk = (Array.isArray(resp) && resp[0] === 'ok');
+          if (wasOk) {
+            // Clear gather flag locally (server consumed it) and hide button
+            try {
+              var key = '' + window.player_x + ',' + window.player_y;
+              if (window.locationsDict && window.locationsDict[key]) {
+                window.locationsDict[key].gstats = '';
+              }
+            } catch (_) {}
+            try { Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
+          }
+
+          // Show gather result popup
+          try {
+            var box = document.getElementById('gatherBox');
+            var dlg = document.getElementById('gather-dialog');
+            if (box && dlg) {
+              var msg = 'You search the area...';
+              if (Array.isArray(resp)) {
+                if (resp[0] === 'ok' && resp[1] === 'item' && resp[2]) {
+                  msg = 'You found: ' + resp[2] + '!';
+                } else if (resp[0] === 'ok' && resp[1] === 'none') {
+                  msg = 'You found nothing this time.';
+                } else if (resp[0] === 'no_gather_here') {
+                  msg = 'There is nothing to gather here.';
+                  // Not gatherable: hide button for this tile
+                  try {
+                    var key0 = '' + window.player_x + ',' + window.player_y;
+                    if (window.locationsDict && window.locationsDict[key0]) { window.locationsDict[key0].gstats = ''; }
+                    Locations.updateGatherButton(window.player_x, window.player_y);
+                  } catch(_) {}
+                } else if (resp[0] === 'blocked_by_monster') {
+                  msg = 'A monster blocks your way! Defeat it before gathering.';
+                } else if (resp[0] === 'cooldown') {
+                  msg = 'You need a moment before gathering again.';
+                } else if (resp[0] === 'no_resources' || resp[0] === 'no_drops') {
+                  msg = 'There is nothing useful to gather here.';
+                  // Not gatherable: hide button for this tile
+                  try {
+                    var key1 = '' + window.player_x + ',' + window.player_y;
+                    if (window.locationsDict && window.locationsDict[key1]) { window.locationsDict[key1].gstats = ''; }
+                    Locations.updateGatherButton(window.player_x, window.player_y);
+                  } catch(_) {}
+                } else if (resp[0] === 'err_db' || resp[0] === 'err') {
+                  msg = 'Something went wrong while gathering. Please try again.';
+                }
+              }
+              box.textContent = msg;
+              // Use success vs error sound
+              if (typeof window.playSound === 'function') {
+                if (Array.isArray(resp) && resp[0] === 'ok') { window.playSound(window.getImageUrl('coin.mp3')); }
+                else { window.playSound(window.getImageUrl('click.mp3')); }
+              }
+              dlg.showModal();
+            }
+          } catch(_) {}
+        })
+        .catch(function(err){ console.error('gather error: ' + err); });
+    } catch(e) { console.error(e); }
+  };
 })();

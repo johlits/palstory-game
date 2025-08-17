@@ -36,6 +36,17 @@
   if (!window.UI) window.UI = {};
   window.UI.showEl = showEl;
   window.UI.hideEl = hideEl;
+  // Ensure move buttons start hidden
+  window.UI.resetMoveButtons = function(){ try { hideEl('#moveSuccessBtn'); hideEl('#moveDisabledBtn'); } catch(_) {} };
+  // Help overlay controller (always-on-top)
+  window.UI.setHelpOverlayVisible = function(visible, line1, line2){
+    try {
+      var el = document.getElementById('help-overlay'); if (!el) return;
+      if (typeof line1 === 'string') { el.querySelector('.h1').textContent = line1; }
+      if (typeof line2 === 'string') { el.querySelector('.h2').textContent = line2; }
+      el.style.display = visible ? 'block' : 'none';
+    } catch(_) {}
+  };
   // Legacy global aliases (for older modules like audio.js)
   if (typeof window.showEl !== 'function') window.showEl = showEl;
   if (typeof window.hideEl !== 'function') window.hideEl = hideEl;
@@ -103,6 +114,37 @@
       window.addEventListener('palstory:move:complete', function(){ hide(); });
     } catch (_) {}
   })();
+
+  // Always-on-top Help overlay (overlaps everything)
+  (function setupHelpOverlay(){
+    try {
+      if (document.getElementById('help-overlay')) return;
+      var el = document.createElement('div');
+      el.id = 'help-overlay';
+      el.style.position = 'fixed';
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+      el.style.bottom = '10%';
+      el.style.padding = '12px 16px';
+      el.style.background = 'rgba(0,0,0,0.70)';
+      el.style.color = '#fff';
+      el.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'";
+      el.style.fontSize = '16px';
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 6px 20px rgba(0,0,0,0.45)';
+      el.style.zIndex = '100000';
+      el.style.pointerEvents = 'none';
+      el.style.textAlign = 'center';
+      el.style.display = 'none';
+      var l1 = document.createElement('div'); l1.className = 'h1'; l1.textContent = window.moveInstructions || 'Use arrow keys (or WASD) to move';
+      var l2 = document.createElement('div'); l2.className = 'h2'; l2.style.opacity = '0.9'; l2.style.marginTop = '4px'; l2.textContent = window.helpInstructions || 'Or click a tile and press Move • Press H for help';
+      el.appendChild(l1); el.appendChild(l2);
+      document.body.appendChild(el);
+    } catch(_) {}
+  })();
+
+  // On initial load, hide move buttons by default
+  try { window.UI.resetMoveButtons(); } catch(_) {}
 
   // Canvas interaction handlers (extracted from game.js init)
   window.UI.onCanvasMouseMove = function (gc, evt) {

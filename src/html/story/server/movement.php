@@ -82,6 +82,8 @@ WHERE lvl_from <= ? AND lvl_to >= ?");
       $is = $db->prepare("INSERT INTO game_locations(room_id, x, y, stats, resource_id) 
 VALUES(?, ?, ?, ?, ?)");
       $locstats = $rloc[6];
+      // 10% chance a tile is gatherable once
+      if (rand(1, 100) <= 10) { $locstats = rtrim($locstats, ';') . ";gather=1;"; }
       $rlocid = intval($rloc[0]);
       $is->bind_param("iiisi", $room_id, $x, $y, $locstats, $rlocid);
       if ($is->execute()) {

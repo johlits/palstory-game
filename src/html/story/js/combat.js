@@ -119,17 +119,29 @@
           }
         } catch (_) { }
         document.getElementById('win-dialog').showModal();
+        // Immediately hide monster panel (server has deleted it) and refresh monsters
+        try {
+          window.currentMonster = null;
+          if (typeof hideEl === 'function') hideEl('#monster_box'); else $('#monster_box').hide();
+          $('#monster_box').addClass('hidden').css({ display: 'none', visibility: 'hidden', opacity: 0 });
+        } catch(_) {}
       } else {
         if (typeof playSound === 'function') playSound(getImageUrl('sword.mp3'));
       }
 
+      // Refresh player and monsters, then unlock movement
       if (typeof getPlayer === 'function') getPlayer(false);
-      if (fromMove) { window.canMove = true; }
-      if (window.Movement && typeof window.Movement.move === 'function') {
-        window.Movement.move('na');
-      } else if (typeof move === 'function') {
-        move('na');
-      }
+      var refreshMonsters = function(){ return Promise.resolve(); };
+      try {
+        if (window.Monsters && typeof window.Monsters.getMonsters === 'function') {
+          refreshMonsters = function(){ return window.Monsters.getMonsters(window.player_x, window.player_y); };
+        }
+      } catch(_) {}
+      refreshMonsters().then(function(){
+        window.canMove = true;
+        try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {}
+        if (window.Movement && typeof window.Movement.flush === 'function') { window.Movement.flush(); }
+      });
     } catch (e) {
       try { console.error('handleFightResponse error:', e); } catch (_) {}
     }

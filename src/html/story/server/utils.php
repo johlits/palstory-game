@@ -140,9 +140,19 @@ function parseMonsterStats($stats)
   return $truestats;
 }
 
-function setPlayerStats($lvl, $exp, $hp, $maxhp, $atk, $def, $spd, $evd, $gold)
+function setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold)
 {
-  return "lvl=" . $lvl . ";exp=" . $exp . ";hp=" . $hp . ";maxhp=" . $maxhp . ";atk=" . $atk . ";def=" . $def . ";spd=" . $spd . ";evd=" . $evd . ";gold=" . $gold . ";";
+  return "lvl=" . $lvl . 
+         ";exp=" . $exp . 
+         ";hp=" . $hp . 
+         ";maxhp=" . $maxhp . 
+         ";mp=" . $mp . 
+         ";maxmp=" . $maxmp . 
+         ";atk=" . $atk . 
+         ";def=" . $def . 
+         ";spd=" . $spd . 
+         ";evd=" . $evd . 
+         ";gold=" . $gold . ";";
 }
 
 function setMonsterStats($hp, $maxhp, $atk, $def, $spd, $evd, $drops, $gold, $exp)

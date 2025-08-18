@@ -204,9 +204,6 @@ body.create-page{ min-height:100vh; }
 .player_bstat{ width:150px; float:left; }
 .location_bstat{ width:100%; float:left; }
 
-/* Player badge width */
-#player_box .nes-badge.is-splited{ width:290px; }
-
 /* Dialog menu alignment */
 .nes-dialog .dialog-menu{ display:flex; justify-content:flex-end; }
 

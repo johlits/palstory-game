@@ -58,7 +58,7 @@ function createPlayer($db, $data)
 
     $x = 0;
     $y = 0;
-    $stats = "lvl=1;exp=0;hp=100;maxhp=100;atk=10;def=10;spd=10;evd=10;gold=0;";
+    $stats = "lvl=1;exp=0;hp=100;maxhp=100;mp=50;maxmp=50;atk=10;def=10;spd=10;evd=10;gold=0;";
 
     $is = $db->prepare("INSERT INTO game_players( name, room_id, x, y, stats, resource_id ) 
 				VALUES(?, ?, ?, ?, ?, ?)");

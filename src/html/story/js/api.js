@@ -18,8 +18,10 @@
 
   var api = {
     // Combat
-    fightMonster: function (playerName, roomId) {
-      return _req({ fight_monster: playerName, room_id: roomId });
+    fightMonster: function (playerName, roomId, skill) {
+      var params = { fight_monster: playerName, room_id: roomId };
+      if (typeof skill === 'string' && skill) params.skill = skill;
+      return _req(params);
     },
 
     // Movement

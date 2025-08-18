@@ -2,6 +2,81 @@
 (function(){
   'use strict';
 
+  var POWER_STRIKE_COST = 5; // keep in sync with server for now
+
+  function setPowerStrikeButtons(state) {
+    try {
+      var main = $('#powerStrikeBtn');
+      var mini = $('#powerStrikeMiniBtn');
+      var text = 'Power Strike';
+      var disabled = false;
+      var title = 'Power Strike';
+      if (state && typeof state.text === 'string') text = state.text;
+      if (state && typeof state.disabled === 'boolean') disabled = !!state.disabled;
+      if (state && typeof state.title === 'string') title = state.title;
+      // Main button: show full text and disabled state
+      if (main && main.length) {
+        main.text(text);
+        if (disabled) main.addClass('is-disabled').attr('disabled', 'disabled');
+        else main.removeClass('is-disabled').removeAttr('disabled');
+        if (title) main.attr('title', title); else main.removeAttr('title');
+      }
+      // Mini button: keep label as "PS", use title for status, ALWAYS enabled (opens info)
+      if (mini && mini.length) {
+        mini.text('PS');
+        // ensure enabled
+        mini.removeClass('is-disabled').removeAttr('disabled');
+        if (title) mini.attr('title', title); else mini.attr('title', 'Power Strike');
+      }
+    } catch (_) {}
+  }
+
+  function startPowerStrikeCountdown(seconds) {
+    try {
+      if (window._psTimer) { clearInterval(window._psTimer); window._psTimer = null; }
+      var remain = parseInt(seconds || 0, 10);
+      if (remain > 0) {
+        window._psRemain = remain;
+        setPowerStrikeButtons({ text: 'Power Strike (' + remain + 's)', title: 'Power Strike (' + remain + 's)', disabled: true });
+        window._psTimer = setInterval(function(){
+          remain -= 1;
+          window._psRemain = Math.max(0, remain);
+          if (remain <= 0) {
+            clearInterval(window._psTimer); window._psTimer = null;
+            // Re-enable; MP check will run on next response. Fallback to enable now.
+            setPowerStrikeButtons({ text: 'Power Strike', title: 'Power Strike', disabled: false });
+            window._psRemain = 0;
+          } else {
+            setPowerStrikeButtons({ text: 'Power Strike (' + remain + 's)', title: 'Power Strike (' + remain + 's)', disabled: true });
+          }
+        }, 1000);
+      }
+    } catch (_) {}
+  }
+
+  function updatePowerStrikeFromResponse(resp) {
+    try {
+      var cds = (resp && resp.cooldowns) ? resp.cooldowns : {};
+      var psRemain = parseInt(cds && cds.power_strike ? cds.power_strike : 0, 10) || 0;
+      window._psRemain = psRemain;
+      var mp = 0;
+      if (resp && resp.player && typeof resp.player.mp !== 'undefined') {
+        mp = parseInt(resp.player.mp || 0, 10) || 0;
+      } else {
+        // fallback from DOM
+        mp = parseInt($('#player_mp').text() || '0', 10) || 0;
+      }
+      if (psRemain > 0) {
+        startPowerStrikeCountdown(psRemain);
+      } else if (mp < POWER_STRIKE_COST) {
+        setPowerStrikeButtons({ text: 'Power Strike (MP ' + POWER_STRIKE_COST + ')', title: 'Need ' + POWER_STRIKE_COST + ' MP', disabled: true });
+      } else {
+        setPowerStrikeButtons({ text: 'Power Strike', title: 'Power Strike (MP 5, CD 5s)', disabled: false });
+        if (window._psTimer) { clearInterval(window._psTimer); window._psTimer = null; }
+      }
+    } catch (_) {}
+  }
+
   // Start a combat round against the current monster
   function attack() {
     try {
@@ -9,6 +84,28 @@
       var roomId = $("#room_id").text();
       if (window.api && typeof window.api.fightMonster === 'function') {
         return window.api.fightMonster(playerName, roomId)
+          .then(function (response) {
+            handleFightResponse(response);
+          })
+          .catch(function (err) {
+            console.error("error: " + err);
+          });
+      } else {
+        console.error('API not available');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // Use a combat skill (basic universal skills before class selection)
+  function useSkill(skillName) {
+    try {
+      var playerName = $("#player").text();
+      var roomId = $("#room_id").text();
+      var skill = (typeof skillName === 'string' && skillName) ? skillName : 'power_strike';
+      if (window.api && typeof window.api.fightMonster === 'function') {
+        return window.api.fightMonster(playerName, roomId, skill)
           .then(function (response) {
             handleFightResponse(response);
           })
@@ -56,13 +153,28 @@
         });
       }
 
+      // Surface structured errors if present
+      try {
+        if (resp && Array.isArray(resp.errors) && resp.errors.length) {
+          resp.errors.forEach(function(e){
+            var msg = '';
+            if (e && e.type === 'skill_on_cooldown') {
+              msg = 'Skill on cooldown: ' + (e.skill || '') + ' (' + (e.seconds || 0) + 's)';
+            } else if (e && e.type === 'invalid_skill') {
+              msg = 'Invalid skill: ' + (e.skill || '');
+            }
+            if (msg) { $("#battle_log").prepend('<span class="nes-text is-disabled">' + msg + '</span><br/>'); }
+          });
+        }
+      } catch(_) {}
+
       if (Array.isArray(events) && events.length) {
         events.forEach(function (ev) {
           try {
-            var t = ev && ev.type;
+            var t = ev && (ev.type || ev.t);
             if (t === 'hit' || t === 'crit') {
               var isCrit = (t === 'crit') || !!ev.crit;
-              var amount = parseInt(ev.amount || 0, 10);
+              var amount = parseInt(ev.amount || ev.dmg || 0, 10);
               if (amount > 0) {
                 if (ev.source === 'player') {
                   if (typeof showDamage === 'function' && typeof player !== 'undefined') showDamage(player, amount, isCrit);
@@ -75,6 +187,11 @@
               if (healAmt > 0 && ev.target === 'player') {
                 if (typeof showHeal === 'function' && typeof player !== 'undefined') showHeal(player, healAmt);
               }
+            } else if (t === 'skill_used') {
+              var sname = (ev.name || ev.skill || 'skill');
+              var mps = (typeof ev.mp_spent !== 'undefined') ? ev.mp_spent : null;
+              var line = 'You used ' + String(sname).replace('_',' ') + (mps !== null ? (' (-' + mps + ' MP)') : '') + '!';
+              $("#battle_log").prepend('<span class="nes-text is-primary">' + line + '</span><br/>');
             } else if (t === 'death') {
               if (ev.target === 'monster') wasSlain = true;
               if (ev.target === 'player') died = true;
@@ -129,6 +246,9 @@
         if (typeof playSound === 'function') playSound(getImageUrl('sword.mp3'));
       }
 
+      // Update skill button state from response (cooldowns + MP)
+      updatePowerStrikeFromResponse(resp);
+
       // Refresh player and monsters, then unlock movement
       if (typeof getPlayer === 'function') getPlayer(false);
       var refreshMonsters = function(){ return Promise.resolve(); };
@@ -154,5 +274,8 @@
   if (!window.Combat) window.Combat = {};
   if (typeof window.Combat.attack !== 'function') {
     window.Combat.attack = attack;
+  }
+  if (typeof window.Combat.useSkill !== 'function') {
+    window.Combat.useSkill = useSkill;
   }
 })();

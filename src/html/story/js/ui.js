@@ -74,6 +74,16 @@
       try { window.UI.showEl('#create_game_box'); } catch (_) {
         try { $('#create_game_box').removeClass('hidden'); } catch (_) {}
       }
+      // Prefill expiration with +7 days if empty
+      try {
+        var $inp = $('#create_game_expiration');
+        if ($inp && !$inp.val()) {
+          var d = new Date();
+          d.setDate(d.getDate() + 7);
+          var v = d.toISOString().slice(0, 10);
+          $inp.val(v);
+        }
+      } catch (_) {}
     }
   };
 
@@ -251,25 +261,76 @@
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.itemToggle == 0) {
       window.itemToggle = 1;
-      hideEl("#audioBtns");
       showEl("#items_table");
       if (window.itemInfoBox == 1) {
         hideEl("#items_table");
         showEl("#item_info_box");
         showEl("#items_description_btn");
       } else {
-        hideEl("#audioBtns");
         showEl("#items_table");
         hideEl("#item_info_box");
         hideEl("#items_description_btn");
       }
     } else {
       window.itemToggle = 0;
-      showEl("#audioBtns");
       hideEl("#items_table");
       hideEl("#item_info_box");
       hideEl("#items_description_btn");
     }
+  };
+
+  // Toggle skills panel within items_box
+  window.UI.toggleSkills = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var $box = $("#skills_box");
+    if (!$box.length) return;
+    if ($box.hasClass('hidden')) { showEl('#skills_box'); }
+    else { hideEl('#skills_box'); }
+  };
+
+  // Show skill info panel and set Use button state
+  window.UI.showSkillInfo = function (skillId) {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    if (!skillId) return;
+    var title = '', desc = '', cost = 0, cd = 0, useBtnId = '', statusId = '';
+    switch (skillId) {
+      case 'power_strike':
+        title = 'Power Strike';
+        desc = 'A heavy attack that deals 150% damage.';
+        cost = 5; cd = 5;
+        useBtnId = '#skill_use_btn_power_strike';
+        statusId = '#skill_status_power_strike';
+        break;
+      default:
+        return;
+    }
+    $('#skill_title').text(title);
+    $('#skill_desc').text(desc + ' Costs ' + cost + ' MP. Cooldown ' + cd + 's.');
+    $('#skill_meta').text('Cost: ' + cost + ' MP • Cooldown: ' + cd + 's');
+
+    // Compute current state
+    var mp = parseInt($('#player_mp').text() || '0', 10) || 0;
+    var remain = window._psRemain ? parseInt(window._psRemain, 10) || 0 : 0;
+    var $useBtn = $(useBtnId);
+    var $status = $(statusId);
+    if ($useBtn && $useBtn.length) {
+      if (remain > 0) {
+        $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+        $status.text('Cooldown ' + remain + 's');
+      } else if (mp < cost) {
+        $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+        $status.text('Need ' + cost + ' MP');
+      } else {
+        $useBtn.removeClass('is-disabled').removeAttr('disabled');
+        $status.text('');
+      }
+    }
+    showEl('#skill_info_box');
+  };
+
+  window.UI.hideSkillInfo = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    hideEl('#skill_info_box');
   };
 
   window.UI.toggleItemsDescription = function () {

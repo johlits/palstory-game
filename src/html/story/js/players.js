@@ -229,6 +229,7 @@
         var stats = response[0].stats;
         var fields = String(stats || '').split(';');
         window.playerAtk = 0; window.playerDef = 0; window.playerSpd = 0; window.playerEvd = 0;
+        var _hp = 0, _maxhp = 0, _mp = 0, _maxmp = 0;
         for (var i = 0; i < fields.length; i++) {
           var field = fields[i];
           if (field.indexOf('atk') === 0) window.playerAtk = parseInt(field.split('=')[1]);
@@ -247,12 +248,24 @@
             $("#player_lv_progress").attr('value', field.split('=')[1]);
           }
           else if (field.indexOf('hp') === 0) {
-            $("#player_hp").text(field.split('=')[1]);
-            $("#player_hp_progress").attr('value', field.split('=')[1]);
+            _hp = parseInt(field.split('=')[1]);
+            $("#player_hp").text(_hp);
+            $("#player_hp_progress").attr('value', _hp);
           }
           else if (field.indexOf('maxhp') === 0) {
-            $("#player_maxhp").text(field.split('=')[1]);
-            $("#player_hp_progress").attr('max', field.split('=')[1]);
+            _maxhp = parseInt(field.split('=')[1]);
+            $("#player_maxhp").text(_maxhp);
+            $("#player_hp_progress").attr('max', _maxhp);
+          }
+          else if (field.indexOf('mp') === 0) {
+            _mp = parseInt(field.split('=')[1]);
+            $("#player_mp").text(_mp);
+            $("#player_mp_progress").attr('value', _mp);
+          }
+          else if (field.indexOf('maxmp') === 0) {
+            _maxmp = parseInt(field.split('=')[1]);
+            $("#player_maxmp").text(_maxmp);
+            $("#player_mp_progress").attr('max', _maxmp);
           }
           else if (field.indexOf('gold') === 0) {
             $("#player_gold").text(window.bG(field.split('=')[1]));
@@ -263,8 +276,12 @@
           window.player.stats = stats;
           if (typeof window.player._statsCache !== 'undefined') window.player._statsCache = null;
         }
-        $("#player_sp").text('100');
-        $("#player_maxsp").text('100');
+        // Fallbacks if MP missing in stats
+        if (!_mp && !_maxmp) {
+          $("#player_mp").text('0');
+          $("#player_maxmp").text('0');
+          $("#player_mp_progress").attr('value', 0).attr('max', 0);
+        }
 
         _uiShow('#player_box');
         _uiShow('#compass');

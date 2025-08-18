@@ -124,7 +124,16 @@
       <span class="is-dark" id="b_player"><? echo substr($_GET["player"], 0, 8); ?></span>
       <span class="is-dark"><span id="player_bx"></span> <span id="player_by"></span></span>
     </a>
+    <span id="audioBtns" style="margin-left:8px; display:inline-flex; gap:6px; vertical-align:middle;">
+      <button id="sfxOffBtn" type="button" class="nes-btn is-error" title="Disable SFX" onclick="AudioCtl.getSfx(0)">🔇</button>
+      <button id="sfxOnBtn" type="button" class="nes-btn is-success hidden" title="Enable SFX" onclick="AudioCtl.getSfx(1)">🔊</button>
+      <button id="t2sOffBtn" type="button" class="nes-btn is-error hidden" title="Disable Text-to-Speech" onclick="AudioCtl.getT2s(0)">🔕</button>
+      <button id="t2sOnBtn" type="button" class="nes-btn is-success" title="Enable Text-to-Speech" onclick="AudioCtl.getT2s(1)">🗣️</button>
+      <button id="bgmOffBtn" type="button" class="nes-btn is-error hidden" title="Disable BGM" onclick="AudioCtl.getMusic(0)">⏹️</button>
+      <button id="bgmOnBtn" type="button" class="nes-btn is-success" title="Enable BGM" onclick="AudioCtl.getMusic(1)">🎵</button>
+    </span>
     <div class="statusbar_outer"><div class="statusbar_text">HP: <span id="player_hp"></span>/<span id="player_maxhp"></span></div><progress id="player_hp_progress" class="nes-progress is-success statusbar" value="100" max="100"></progress></div>
+    <div class="statusbar_outer"><div class="statusbar_text">MP: <span id="player_mp"></span>/<span id="player_maxmp"></span></div><progress id="player_mp_progress" class="nes-progress is-primary statusbar" value="0" max="0"></progress></div>
     <!-- <div class="statusbar_outer"><div class="statusbar_text">SP: <span id="player_sp"></span>/<span id="player_maxsp"></span></div><progress id="player_sp_progress" class="nes-progress is-primary statusbar" value="100" max="100"></progress></div> -->
     <div class="statusbar_outer"><div class="statusbar_text">LV: <span id="player_lvl"></span> (<span id="player_exp"></span>/<span id="player_expup"></span>)</div><progress id="player_lv_progress" class="nes-progress is-primary statusbar" value="100" max="100"></progress></div>
 </div>
@@ -203,17 +212,26 @@
 
 <div>
 <button type="button" class="nes-btn" onclick="UI.toggleItemsTable()">Items</button>
+<button type="button" class="nes-btn" onclick="UI.toggleSkills()">Skills</button>
 <button id="items_description_btn" type="button" class="nes-btn hidden" onclick="UI.toggleItemsDescription()">Close description</button>
-<span id="audioBtns">
-
-    <button id="sfxOffBtn" type="button" class="nes-btn is-error" onclick="AudioCtl.getSfx(0)">SFX</button>
-    <button id="sfxOnBtn" type="button" class="nes-btn is-success hidden" onclick="AudioCtl.getSfx(1)">SFX</button>
-    <button id="t2sOffBtn" type="button" class="nes-btn is-error hidden" onclick="AudioCtl.getT2s(0)">T2S</button>
-    <button id="t2sOnBtn" type="button" class="nes-btn is-success" onclick="AudioCtl.getT2s(1)">T2S</button>
-    <button id="bgmOffBtn" type="button" class="nes-btn is-error hidden" onclick="AudioCtl.getMusic(0)">BGM</button>
-    <button id="bgmOnBtn" type="button" class="nes-btn is-success" onclick="AudioCtl.getMusic(1)">BGM</button>
 <!-- <button type="button" class="nes-btn" onclick="toggleItemsStats()">Stats</button> -->
-</span>
+</div>
+
+<div id="skills_box" class="hidden" style="margin-top:8px;">
+  <span class="nes-text is-warning">Skills</span><br/>
+  <button id="powerStrikeMiniBtn" type="button" class="nes-btn is-primary" onclick="UI.showSkillInfo('power_strike')" title="Power Strike (MP 5, CD 5s)">PS</button>
+  <div id="skill_info_box" class="hidden" style="margin-top:8px;">
+    <div class="shadow">
+      <span class="nes-text is-warning" id="skill_title">Power Strike</span>
+      <div id="skill_desc" class="justify" style="margin-top:6px;">A heavy attack that deals 150% damage. Costs 5 MP. Cooldown 5s.</div>
+      <div id="skill_meta" class="nes-text is-disabled" style="margin-top:6px;">Cost: 5 MP • Cooldown: 5s</div>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="skill_use_btn_power_strike" type="button" class="nes-btn is-success" onclick="Combat.useSkill('power_strike')" title="Use Power Strike">Use</button>
+        <button type="button" class="nes-btn" onclick="UI.hideSkillInfo()">Close</button>
+        <span id="skill_status_power_strike" class="nes-text is-disabled" style="align-self:center;"></span>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 </div>
@@ -305,7 +323,7 @@
       </div>
       <div class="stack">
         <label for="create_game_expiration">Expiration:</label>
-        <input type="date" id="create_game_expiration" name="create_game_expiration">
+        <input type="date" id="create_game_expiration" name="create_game_expiration" value="<? echo date('Y-m-d', strtotime('+7 days')); ?>">
       </div>
       <!--
       <div class="stack">

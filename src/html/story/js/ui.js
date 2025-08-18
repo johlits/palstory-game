@@ -36,6 +36,29 @@
   if (!window.UI) window.UI = {};
   window.UI.showEl = showEl;
   window.UI.hideEl = hideEl;
+  // Dynamic z-index management for HUD panels
+  var BASE_PANEL_Z = 10;
+  if (typeof window.__uiTopZIndex === 'undefined') window.__uiTopZIndex = BASE_PANEL_Z + 1;
+  window.UI.raisePanel = function(selOrEl){
+    try {
+      var el = (typeof selOrEl === 'string') ? document.querySelector(selOrEl) : selOrEl;
+      if (!el) return;
+      window.__uiTopZIndex = Math.max(window.__uiTopZIndex || BASE_PANEL_Z, BASE_PANEL_Z) + 1;
+      el.style.zIndex = String(window.__uiTopZIndex);
+    } catch (_) {}
+  };
+  function setupPanelHoverZ(){
+    try {
+      var sels = ['#items_box', '#monster_box', '#skills_box', '#location_box', '#skill_info_box'];
+      sels.forEach(function(sel){
+        var el = document.querySelector(sel);
+        if (!el || el.__hoverBound) return;
+        el.__hoverBound = true;
+        el.addEventListener('mouseenter', function(){ try { window.UI.raisePanel(el); } catch(_) {} });
+      });
+    } catch(_) {}
+  }
+  window.UI.setupPanelHoverZ = setupPanelHoverZ;
   // Ensure move buttons start hidden
   window.UI.resetMoveButtons = function(){ try { hideEl('#moveSuccessBtn'); hideEl('#moveDisabledBtn'); } catch(_) {} };
   // Help overlay controller (always-on-top)
@@ -225,8 +248,7 @@
   window.UI.toggleLocationInfo = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.locationToggle != 1) {
-      $("#location_box").css("z-index", "2");
-      $("#monster_box").css("z-index", "1");
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
       showEl("#location_data_box");
       try { speak($("#location_description").text()); } catch (_) {}
       window.locationToggle = 1;
@@ -243,8 +265,7 @@
   window.UI.toggleLocationStats = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.locationToggle != 2) {
-      $("#location_box").css("z-index", "2");
-      $("#monster_box").css("z-index", "1");
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
       showEl("#location_data_box");
       window.locationToggle = 2;
       hideEl("#location_info_box");
@@ -261,6 +282,7 @@
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.itemToggle == 0) {
       window.itemToggle = 1;
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#items_box'); } catch(_) {}
       showEl("#items_table");
       if (window.itemInfoBox == 1) {
         hideEl("#items_table");
@@ -284,7 +306,7 @@
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     var $box = $("#skills_box");
     if (!$box.length) return;
-    if ($box.hasClass('hidden')) { showEl('#skills_box'); }
+    if ($box.hasClass('hidden')) { showEl('#skills_box'); try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skills_box'); } catch(_) {} }
     else { hideEl('#skills_box'); }
   };
 
@@ -326,11 +348,14 @@
       }
     }
     showEl('#skill_info_box');
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skill_info_box'); } catch(_) {}
+    try { startSkillInfoAutorefresh(skillId); } catch(_) {}
   };
 
   window.UI.hideSkillInfo = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     hideEl('#skill_info_box');
+    try { stopSkillInfoAutorefresh(); } catch(_) {}
   };
 
   window.UI.toggleItemsDescription = function () {
@@ -351,8 +376,7 @@
   window.UI.toggleMonsterInfo = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.monsterToggle != 1) {
-      $("#location_box").css("z-index", "1");
-      $("#monster_box").css("z-index", "2");
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
       showEl("#monster_data_box");
       window.monsterToggle = 1;
       hideEl("#monster_battle_box");
@@ -370,8 +394,7 @@
   window.UI.toggleMonsterStats = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.monsterToggle != 2) {
-      $("#location_box").css("z-index", "1");
-      $("#monster_box").css("z-index", "2");
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
       showEl("#monster_data_box");
       window.monsterToggle = 2;
       hideEl("#monster_battle_box");
@@ -388,8 +411,7 @@
   window.UI.toggleBattleLog = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.monsterToggle != 3) {
-      $("#location_box").css("z-index", "1");
-      $("#monster_box").css("z-index", "2");
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
       showEl("#monster_data_box");
       window.monsterToggle = 3;
       hideEl("#monster_info_box");
@@ -463,4 +485,44 @@
   window.UI.setupKeyboardHandlers = setupKeyboardHandlers;
   // Auto-attach on load for backward compatibility
   setupKeyboardHandlers();
+  setupPanelHoverZ();
+
+  // Skill Info auto-refresh loop (cooldown/MP while panel is open)
+  function startSkillInfoAutorefresh(skillId){
+    try {
+      if (window.__skillInfoTimer) { clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; }
+      window.__skillInfoSkill = skillId || window.__skillInfoSkill || 'power_strike';
+      var id = window.__skillInfoSkill;
+      window.__skillInfoTimer = setInterval(function(){
+        try {
+          var box = document.getElementById('skill_info_box');
+          if (!box || box.classList.contains('hidden') || box.style.display === 'none') {
+            clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; return;
+          }
+          if (id === 'power_strike') {
+            var mp = parseInt($('#player_mp').text() || '0', 10) || 0;
+            var remain = window._psRemain ? (parseInt(window._psRemain, 10) || 0) : 0;
+            var cost = 5;
+            var $useBtn = $('#skill_use_btn_power_strike');
+            var $status = $('#skill_status_power_strike');
+            if ($useBtn && $useBtn.length) {
+              if (remain > 0) {
+                $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+                $status.text('Cooldown ' + remain + 's');
+              } else if (mp < cost) {
+                $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+                $status.text('Need ' + cost + ' MP');
+              } else {
+                $useBtn.removeClass('is-disabled').removeAttr('disabled');
+                $status.text('');
+              }
+            }
+          }
+        } catch(_) {}
+      }, 300);
+    } catch(_) {}
+  }
+  function stopSkillInfoAutorefresh(){
+    try { if (window.__skillInfoTimer) { clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; } } catch(_) {}
+  }
 })();

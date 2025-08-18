@@ -538,6 +538,8 @@ function fightMonster($db, $data, $itemDropRate)
                   // update player stats
                   $up = $db->prepare("UPDATE game_players SET stats = ? WHERE id = ?");
                   $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold);
+                  // Append cooldowns to ensure persistence across ongoing rounds
+                  foreach ($cooldowns as $k => $v) { $player_stats_str .= $k . "=" . intval($v) . ";"; }
                   $up->bind_param("si", $player_stats_str, $player_id);
                   $up->execute();
                   $up->close();

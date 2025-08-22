@@ -15,7 +15,8 @@ function fightMonster($db, $data, $itemDropRate)
   }
   // Whitelist and config for skills (can be moved to DB/JSON later)
   $skill_defs = array(
-    'power_strike' => array('mp_cost' => 5, 'mult' => 1.5, 'cd_sec' => 5)
+    'power_strike' => array('mp_cost' => 5, 'mult' => 1.5, 'cd_sec' => 5),
+    'fireball' => array('mp_cost' => 7, 'mult' => 1.6, 'cd_sec' => 6)
   );
 
   $sp = $db->prepare("SELECT * 
@@ -283,7 +284,7 @@ function fightMonster($db, $data, $itemDropRate)
                       }
                     } catch (Throwable $_) { }
                     $result["events"][] = array("t" => "skill_used", "name" => $skill_name, "mp_spent" => $skill_cost);
-                    $result["log"][] = $player_name . " used Power Strike (-".$skill_cost." MP)!";
+                    $result["log"][] = $player_name . " used " . ucfirst(str_replace('_',' ', $skill_name)) . " (-".$skill_cost." MP)!";
                   } else {
                     // Not enough MP; skill ignored
                     $result["log"][] = "Not enough MP to use skill.";

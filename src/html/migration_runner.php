@@ -27,10 +27,13 @@ $DB_USERNAME = getenv('DB_USERNAME') ?: 'root';
 $DB_PASSWORD = getenv('DB_PASSWORD') ?: '';
 $DB_NAME = getenv('DB_NAME') ?: 'story';
 
-// If config.php exists, include it to override
-if (file_exists(__DIR__ . '/config.php')) {
-    // config.php should define $DB_SERVER, $DB_USERNAME, $DB_PASSWORD, $DB_NAME
-    include __DIR__ . '/config.php';
+// If config.php exists, include it to override (prefer story/ location for app files)
+foreach ([__DIR__ . '/story/config.php', __DIR__ . '/config.php'] as $cfg) {
+    if (file_exists($cfg)) {
+        // config.php should define $DB_SERVER, $DB_USERNAME, $DB_PASSWORD, $DB_NAME
+        include $cfg;
+        break;
+    }
 }
 
 try {

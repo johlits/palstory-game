@@ -220,6 +220,7 @@
 <div id="skills_box" class="hidden" style="margin-top:8px;">
   <span class="nes-text is-warning">Skills</span><br/>
   <button id="powerStrikeMiniBtn" type="button" class="nes-btn is-primary" onclick="UI.showSkillInfo('power_strike')" title="Power Strike (MP 5, CD 5s)">PS</button>
+  <button id="fireballMiniBtn" type="button" class="nes-btn is-error" onclick="UI.showSkillInfo('fireball')" title="Fireball (MP 7, CD 6s)">FB</button>
   <div id="skill_info_box" class="hidden" style="margin-top:8px;">
     <div class="shadow">
       <span class="nes-text is-warning" id="skill_title">Power Strike</span>
@@ -227,8 +228,10 @@
       <div id="skill_meta" class="nes-text is-disabled" style="margin-top:6px;">Cost: 5 MP • Cooldown: 5s</div>
       <div style="margin-top:8px; display:flex; gap:8px;">
         <button id="skill_use_btn_power_strike" type="button" class="nes-btn is-success" onclick="Combat.useSkill('power_strike')" title="Use Power Strike">Use</button>
+        <button id="skill_use_btn_fireball" type="button" class="nes-btn is-success hidden" onclick="Combat.useSkill('fireball')" title="Use Fireball">Use</button>
         <button type="button" class="nes-btn" onclick="UI.hideSkillInfo()">Close</button>
         <span id="skill_status_power_strike" class="nes-text is-disabled" style="align-self:center;"></span>
+        <span id="skill_status_fireball" class="nes-text is-disabled hidden" style="align-self:center;"></span>
       </div>
     </div>
   </div>

@@ -323,16 +323,34 @@
         useBtnId = '#skill_use_btn_power_strike';
         statusId = '#skill_status_power_strike';
         break;
+      case 'fireball':
+        title = 'Fireball';
+        desc = 'A searing blast that deals 160% damage.';
+        cost = 7; cd = 6;
+        useBtnId = '#skill_use_btn_fireball';
+        statusId = '#skill_status_fireball';
+        break;
       default:
         return;
     }
+    // Toggle visibility of Use buttons and status rows for known skills
+    try {
+      $('#skill_use_btn_power_strike, #skill_status_power_strike').addClass('hidden');
+      $('#skill_use_btn_fireball, #skill_status_fireball').addClass('hidden');
+      $(useBtnId + ', ' + statusId).removeClass('hidden');
+    } catch(_) {}
     $('#skill_title').text(title);
     $('#skill_desc').text(desc + ' Costs ' + cost + ' MP. Cooldown ' + cd + 's.');
     $('#skill_meta').text('Cost: ' + cost + ' MP • Cooldown: ' + cd + 's');
 
     // Compute current state
     var mp = parseInt($('#player_mp').text() || '0', 10) || 0;
-    var remain = window._psRemain ? parseInt(window._psRemain, 10) || 0 : 0;
+    var remain = 0;
+    if (skillId === 'power_strike') {
+      remain = window._psRemain ? (parseInt(window._psRemain, 10) || 0) : 0;
+    } else if (skillId === 'fireball') {
+      remain = window._fbRemain ? (parseInt(window._fbRemain, 10) || 0) : 0;
+    }
     var $useBtn = $(useBtnId);
     var $status = $(statusId);
     if ($useBtn && $useBtn.length) {
@@ -515,6 +533,24 @@
               } else {
                 $useBtn.removeClass('is-disabled').removeAttr('disabled');
                 $status.text('');
+              }
+            }
+          } else if (id === 'fireball') {
+            var mp2 = parseInt($('#player_mp').text() || '0', 10) || 0;
+            var remain2 = window._fbRemain ? (parseInt(window._fbRemain, 10) || 0) : 0;
+            var cost2 = 7;
+            var $useBtn2 = $('#skill_use_btn_fireball');
+            var $status2 = $('#skill_status_fireball');
+            if ($useBtn2 && $useBtn2.length) {
+              if (remain2 > 0) {
+                $useBtn2.addClass('is-disabled').attr('disabled', 'disabled');
+                $status2.text('Cooldown ' + remain2 + 's');
+              } else if (mp2 < cost2) {
+                $useBtn2.addClass('is-disabled').attr('disabled', 'disabled');
+                $status2.text('Need ' + cost2 + ' MP');
+              } else {
+                $useBtn2.removeClass('is-disabled').removeAttr('disabled');
+                $status2.text('');
               }
             }
           }

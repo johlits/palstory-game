@@ -29,7 +29,7 @@ PalStory is an interactive web game where players can create characters, explore
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd palstory-ai/palstory-lamp
+   cd palstory/palstory-lamp
    ```
 
 2. **Start the application**
@@ -46,7 +46,7 @@ PalStory is an interactive web game where players can create characters, explore
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd palstory-ai/palstory
+   cd palstory
    ```
 
 2. **Set up the database**
@@ -140,7 +140,7 @@ src/html/
 The recommended way to run PalStory is using the companion `palstory-lamp` Docker setup:
 
 ```bash
-cd palstory-ai/palstory-lamp
+cd palstory/palstory-lamp
 docker-compose up -d
 ```
 

@@ -3,6 +3,7 @@
   'use strict';
 
   var POWER_STRIKE_COST = 5; // keep in sync with server for now
+  var FIREBALL_COST = 7;     // keep in sync with server for now
 
   function setPowerStrikeButtons(state) {
     try {
@@ -31,6 +32,19 @@
     } catch (_) {}
   }
 
+  function setFireballButtons(state) {
+    try {
+      var mini = $('#fireballMiniBtn');
+      var title = 'Fireball (MP 7, CD 6s)';
+      if (state && typeof state.title === 'string') title = state.title;
+      if (mini && mini.length) {
+        mini.text('FB');
+        mini.removeClass('is-disabled').removeAttr('disabled');
+        if (title) mini.attr('title', title); else mini.attr('title', 'Fireball');
+      }
+    } catch (_) {}
+  }
+
   function startPowerStrikeCountdown(seconds) {
     try {
       if (window._psTimer) { clearInterval(window._psTimer); window._psTimer = null; }
@@ -48,6 +62,28 @@
             window._psRemain = 0;
           } else {
             setPowerStrikeButtons({ text: 'Power Strike (' + remain + 's)', title: 'Power Strike (' + remain + 's)', disabled: true });
+          }
+        }, 1000);
+      }
+    } catch (_) {}
+  }
+
+  function startFireballCountdown(seconds) {
+    try {
+      if (window._fbTimer) { clearInterval(window._fbTimer); window._fbTimer = null; }
+      var remain = parseInt(seconds || 0, 10);
+      if (remain > 0) {
+        window._fbRemain = remain;
+        setFireballButtons({ title: 'Fireball (' + remain + 's)' });
+        window._fbTimer = setInterval(function(){
+          remain -= 1;
+          window._fbRemain = Math.max(0, remain);
+          if (remain <= 0) {
+            clearInterval(window._fbTimer); window._fbTimer = null;
+            setFireballButtons({ title: 'Fireball (MP 7, CD 6s)' });
+            window._fbRemain = 0;
+          } else {
+            setFireballButtons({ title: 'Fireball (' + remain + 's)' });
           }
         }, 1000);
       }
@@ -73,6 +109,28 @@
       } else {
         setPowerStrikeButtons({ text: 'Power Strike', title: 'Power Strike (MP 5, CD 5s)', disabled: false });
         if (window._psTimer) { clearInterval(window._psTimer); window._psTimer = null; }
+      }
+    } catch (_) {}
+  }
+
+  function updateFireballFromResponse(resp) {
+    try {
+      var cds = (resp && resp.cooldowns) ? resp.cooldowns : {};
+      var fbRemain = parseInt(cds && cds.fireball ? cds.fireball : 0, 10) || 0;
+      window._fbRemain = fbRemain;
+      var mp = 0;
+      if (resp && resp.player && typeof resp.player.mp !== 'undefined') {
+        mp = parseInt(resp.player.mp || 0, 10) || 0;
+      } else {
+        mp = parseInt($('#player_mp').text() || '0', 10) || 0;
+      }
+      if (fbRemain > 0) {
+        startFireballCountdown(fbRemain);
+      } else if (mp < FIREBALL_COST) {
+        setFireballButtons({ title: 'Need ' + FIREBALL_COST + ' MP' });
+      } else {
+        setFireballButtons({ title: 'Fireball (MP 7, CD 6s)' });
+        if (window._fbTimer) { clearInterval(window._fbTimer); window._fbTimer = null; }
       }
     } catch (_) {}
   }
@@ -248,6 +306,7 @@
 
       // Update skill button state from response (cooldowns + MP)
       updatePowerStrikeFromResponse(resp);
+      updateFireballFromResponse(resp);
 
       // Refresh player and monsters, then unlock movement
       if (typeof getPlayer === 'function') getPlayer(false);

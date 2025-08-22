@@ -4,6 +4,27 @@ function fightMonster($db, $data, $itemDropRate)
 {
   $player_name = clean($data['fight_monster']);
   $room_id = intval(clean($data['room_id']));
+  // Structured result init (moved up so rate limit can return proper shape)
+  $result = array(
+    "type" => "fight",
+    "events" => array(),
+    "log" => array(),
+    "outcome" => "ongoing",
+    "rewards" => array("gold" => 0, "exp" => 0, "leveledUp" => false, "newLevel" => null),
+    "drops" => array(),
+    "player" => null,
+    "monster" => null,
+    "cooldowns" => array(),
+    "errors" => array()
+  );
+
+  // Basic rate limit (configurable): max COMBAT_RL_MAX_ACTIONS per COMBAT_RL_WINDOW_SEC per player per room (best-effort)
+  $rlc = telemetryRateLimitCheck($db, $room_id, $player_name, ['combat_start','skill_used'], COMBAT_RL_WINDOW_SEC, COMBAT_RL_MAX_ACTIONS);
+  if (!$rlc['ok']) {
+    $result["errors"][] = array("type" => "rate_limited", "window_sec" => COMBAT_RL_WINDOW_SEC);
+    $result["log"][] = "Too many combat actions. Please wait a moment.";
+    return $result;
+  }
 
   // Heartbeat on combat action
   touchPlayer($db, $room_id, $player_name);
@@ -24,19 +45,7 @@ function fightMonster($db, $data, $itemDropRate)
 				WHERE room_id = ? AND name = ?");
   $sp->bind_param("is", $room_id, $player_name);
 
-  // Structured result we will return
-  $result = array(
-    "type" => "fight",
-    "events" => array(),   // timeline of events
-    "log" => array(),      // human-readable lines
-    "outcome" => "ongoing", // win|lose|ongoing
-    "rewards" => array("gold" => 0, "exp" => 0, "leveledUp" => false, "newLevel" => null),
-    "drops" => array(),
-    "player" => null,      // will be filled with updated stats
-    "monster" => null,     // will be filled with updated state
-    "cooldowns" => array(), // seconds remaining by skill key
-    "errors" => array()     // optional structured errors
-  );
+  // Result was initialized above
 
   if ($sp->execute()) {
 

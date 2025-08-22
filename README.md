@@ -157,6 +157,9 @@ This provides a complete LAMP stack with automatic database initialization - no 
   - `DB_PASSWORD=tiger`
   - `DB_NAME=story`
   - `MIGRATE_TOKEN=change_me_secure_token` (change for prod)
+  - Optional combat rate-limit tuning:
+    - `COMBAT_RL_WINDOW_SEC=1` (default 1)
+    - `COMBAT_RL_MAX_ACTIONS=3` (default 3)
 
 Run database migrations via the token-gated runner:
 
@@ -182,6 +185,14 @@ Safe to run multiple times; the runner applies only pending migrations.
 - Server route `ping_player` updates `game_players.last_seen`.
 - Telemetry table `game_logs` records basic events (e.g., `ping`, `move_intent`).
   - See migrations `migrations/0003_add_last_seen.sql` and `migrations/0004_add_telemetry.sql`.
+
+### Rate Limits (Combat)
+
+- The server enforces a minimal combat rate limit per player per room using telemetry (`game_logs`).
+- Default policy: up to 3 combat-related actions per 1 second window.
+- Configure via env vars `COMBAT_RL_WINDOW_SEC` and `COMBAT_RL_MAX_ACTIONS` (see above).
+- On exceeding the limit, API responses include an error: `{ type: "rate_limited", window_sec: <configured> }`.
+- For a more detailed overview, see the PalStory superproject documentation (rate limits).
 
 ## Contributing
 

@@ -7,8 +7,61 @@
   if (typeof window.itemInfoBox === 'undefined') window.itemInfoBox = 0;
   if (typeof window.monsterToggle === 'undefined') window.monsterToggle = 0;
 
+  // New independent toggle states
+  if (typeof window.locationInfoOpen === 'undefined') window.locationInfoOpen = false;
+  if (typeof window.locationStatsOpen === 'undefined') window.locationStatsOpen = false;
+  if (typeof window.monsterInfoOpen === 'undefined') window.monsterInfoOpen = false;
+  if (typeof window.monsterStatsOpen === 'undefined') window.monsterStatsOpen = false;
+  if (typeof window.monsterBattleOpen === 'undefined') window.monsterBattleOpen = false;
+
   function showEl(sel) { try { $(sel).removeClass('hidden'); } catch (e) {} }
   function hideEl(sel) { try { $(sel).addClass('hidden'); } catch (e) {} }
+
+  // Small helper to check visibility based on our hidden class
+  function isElVisible(sel){
+    try {
+      var el = document.querySelector(sel);
+      if (!el) return false;
+      return !el.classList.contains('hidden');
+    } catch(_) { return false; }
+  }
+
+  // Keep container/name visibility in sync for Location box
+  function updateLocationContainers(){
+    try {
+      var anyOpen = (window.locationInfoOpen || window.locationStatsOpen);
+      if (anyOpen) {
+        showEl('#location_data_box');
+        hideEl('#location_name_box');
+      } else {
+        hideEl('#location_data_box');
+        showEl('#location_name_box');
+      }
+      // Legacy integer mirror (best-effort)
+      if (!anyOpen) window.locationToggle = 0;
+      else if (window.locationInfoOpen) window.locationToggle = 1;
+      else if (window.locationStatsOpen) window.locationToggle = 2;
+    } catch(_) {}
+  }
+
+  // Keep container/name visibility in sync for Monster box
+  function updateMonsterContainers(){
+    try {
+      var anyOpen = (window.monsterInfoOpen || window.monsterStatsOpen || window.monsterBattleOpen);
+      if (anyOpen) {
+        showEl('#monster_data_box');
+        hideEl('#monster_name_box');
+      } else {
+        hideEl('#monster_data_box');
+        showEl('#monster_name_box');
+      }
+      // Legacy integer mirror (best-effort)
+      if (!anyOpen) window.monsterToggle = 0;
+      else if (window.monsterBattleOpen) window.monsterToggle = 3;
+      else if (window.monsterStatsOpen) window.monsterToggle = 2;
+      else if (window.monsterInfoOpen) window.monsterToggle = 1;
+    } catch(_) {}
+  }
 
   function showCreatePlayerBox() {
     if (!window.gameStarted) {
@@ -179,6 +232,27 @@
   // On initial load, hide move buttons by default
   try { window.UI.resetMoveButtons(); } catch(_) {}
 
+  // Initialize panel visibility (closed by default) to avoid auto-showing siblings
+  (function initIndependentToggles(){
+    try {
+      // Close all sub-panels initially
+      hideEl('#location_info_box');
+      hideEl('#location_stats_box');
+      hideEl('#monster_info_box');
+      hideEl('#monster_stats_box');
+      hideEl('#monster_battle_box');
+      // Reset flags
+      window.locationInfoOpen = false;
+      window.locationStatsOpen = false;
+      window.monsterInfoOpen = false;
+      window.monsterStatsOpen = false;
+      window.monsterBattleOpen = false;
+      // Sync containers with flags
+      updateLocationContainers();
+      updateMonsterContainers();
+    } catch(_) {}
+  })();
+
   // Canvas interaction handlers (extracted from game.js init)
   window.UI.onCanvasMouseMove = function (gc, evt) {
     try {
@@ -247,35 +321,31 @@
 
   window.UI.toggleLocationInfo = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
-    if (window.locationToggle != 1) {
-      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
-      showEl("#location_data_box");
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
+    // Toggle independent state
+    window.locationInfoOpen = !window.locationInfoOpen;
+    if (window.locationInfoOpen) {
+      showEl('#location_box');
+      showEl('#location_info_box');
       try { speak($("#location_description").text()); } catch (_) {}
-      window.locationToggle = 1;
-      hideEl("#location_stats_box");
-      showEl("#location_info_box");
-      hideEl("#location_name_box");
     } else {
-      window.locationToggle = 0;
-      hideEl("#location_data_box");
-      showEl("#location_name_box");
+      hideEl('#location_info_box');
     }
+    updateLocationContainers();
   };
 
   window.UI.toggleLocationStats = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
-    if (window.locationToggle != 2) {
-      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
-      showEl("#location_data_box");
-      window.locationToggle = 2;
-      hideEl("#location_info_box");
-      showEl("#location_stats_box");
-      hideEl("#location_name_box");
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
+    // Toggle independent state
+    window.locationStatsOpen = !window.locationStatsOpen;
+    if (window.locationStatsOpen) {
+      showEl('#location_box');
+      showEl('#location_stats_box');
     } else {
-      window.locationToggle = 0;
-      hideEl("#location_data_box");
-      showEl("#location_name_box");
+      hideEl('#location_stats_box');
     }
+    updateLocationContainers();
   };
 
   window.UI.toggleItemsTable = function () {
@@ -393,54 +463,42 @@
 
   window.UI.toggleMonsterInfo = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
-    if (window.monsterToggle != 1) {
-      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
-      showEl("#monster_data_box");
-      window.monsterToggle = 1;
-      hideEl("#monster_battle_box");
-      hideEl("#monster_stats_box");
-      showEl("#monster_info_box");
-      hideEl("#monster_name_box");
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
+    window.monsterInfoOpen = !window.monsterInfoOpen;
+    if (window.monsterInfoOpen) {
+      showEl('#monster_box');
+      showEl('#monster_info_box');
       try { speak($("#monster_description").text()); } catch (_) {}
     } else {
-      window.monsterToggle = 0;
-      hideEl("#monster_data_box");
-      showEl("#monster_name_box");
+      hideEl('#monster_info_box');
     }
+    updateMonsterContainers();
   };
 
   window.UI.toggleMonsterStats = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
-    if (window.monsterToggle != 2) {
-      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
-      showEl("#monster_data_box");
-      window.monsterToggle = 2;
-      hideEl("#monster_battle_box");
-      hideEl("#monster_info_box");
-      showEl("#monster_stats_box");
-      hideEl("#monster_name_box");
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
+    window.monsterStatsOpen = !window.monsterStatsOpen;
+    if (window.monsterStatsOpen) {
+      showEl('#monster_box');
+      showEl('#monster_stats_box');
     } else {
-      window.monsterToggle = 0;
-      hideEl("#monster_data_box");
-      showEl("#monster_name_box");
+      hideEl('#monster_stats_box');
     }
+    updateMonsterContainers();
   };
 
   window.UI.toggleBattleLog = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
-    if (window.monsterToggle != 3) {
-      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
-      showEl("#monster_data_box");
-      window.monsterToggle = 3;
-      hideEl("#monster_info_box");
-      hideEl("#monster_stats_box");
-      hideEl("#monster_name_box");
-      showEl("#monster_battle_box");
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
+    window.monsterBattleOpen = !window.monsterBattleOpen;
+    if (window.monsterBattleOpen) {
+      showEl('#monster_box');
+      showEl('#monster_battle_box');
     } else {
-      window.monsterToggle = 0;
-      hideEl("#monster_data_box");
-      showEl("#monster_name_box");
+      hideEl('#monster_battle_box');
     }
+    updateMonsterContainers();
   };
 
   window.UI.toggleDebug = function () {

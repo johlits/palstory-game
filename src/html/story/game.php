@@ -247,9 +247,11 @@
 
   <div id="location_info_box">
   <img id="location_image" src="">
-  <span class="location_name nes-text is-warning justify"></span><br/>
-  <span id="location_description" class="justify"></span>
-</div>
+  <div class="info_text">
+    <span class="location_name nes-text is-warning"></span>
+    <span id="location_description" class="justify"></span>
+  </div>
+  </div>
 
 <div id="location_stats_box">
   <span class="nes-text is-warning">Location Stats</span><br/>
@@ -279,8 +281,10 @@
 
 <div id="monster_info_box">
 <img id="monster_image" src="">
-<span class="monster_name nes-text is-warning justify"></span><br/>
-<span id="monster_description" class="justify"></span>
+<div class="info_text">
+  <span class="monster_name nes-text is-warning"></span>
+  <span id="monster_description" class="justify"></span>
+  </div>
 </div>
 
 <div id="monster_battle_box" class="hidden">

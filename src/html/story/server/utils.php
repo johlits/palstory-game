@@ -177,3 +177,44 @@ function touchPlayer($db, $room_id, $player_name)
     $q->close();
   }
 }
+
+// Telemetry-based rate limit helper (best-effort)
+// Checks how many matching actions a player performed in a room within a window.
+// Returns an array: [ 'ok' => bool, 'count' => int, 'window_sec' => int, 'cutoff' => 'YYYY-mm-dd HH:ii:ss' ]
+function telemetryRateLimitCheck($db, $room_id, $player_name, $actions, $window_sec, $max_actions)
+{
+  $out = [ 'ok' => true, 'count' => 0, 'window_sec' => intval($window_sec), 'cutoff' => null ];
+  try {
+    if (!$db) { return $out; }
+    if (!is_array($actions) || count($actions) === 0) { return $out; }
+    // Whitelist action tokens to prevent injection; only allow lowercase letters and underscores
+    $safe = [];
+    foreach ($actions as $a) {
+      $a = strval($a);
+      if (preg_match('/^[a-z_]+$/', $a)) { $safe[] = $a; }
+    }
+    if (count($safe) === 0) { return $out; }
+    // Build action IN list safely (quoted literals), other fields use prepared params
+    $escaped = array_map(function($s) use ($db) { return "'" . $db->real_escape_string($s) . "'"; }, $safe);
+    $in_list = implode(",", $escaped);
+    $win = max(1, intval($window_sec));
+    $cutoff = date('Y-m-d H:i:s', time() - $win);
+    $out['cutoff'] = $cutoff;
+    $sql = "SELECT COUNT(*) AS c FROM game_logs WHERE action IN (".$in_list.") AND room_id = ? AND ts > ? AND player_name = ?";
+    if ($st = $db->prepare($sql)) {
+      $st->bind_param("iss", $room_id, $cutoff, $player_name);
+      if ($st->execute()) {
+        $res = $st->get_result();
+        if ($row = $res->fetch_assoc()) {
+          $cnt = intval($row['c']);
+          $out['count'] = $cnt;
+          if ($cnt >= intval($max_actions)) {
+            $out['ok'] = false;
+          }
+        }
+      }
+      $st->close();
+    }
+  } catch (Throwable $_) { /* ignore */ }
+  return $out;
+}

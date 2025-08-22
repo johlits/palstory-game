@@ -146,11 +146,19 @@ a:hover{ color: var(--text); text-decoration: underline; }
 #item_info_box{ max-height:300px; overflow-y:auto; }
 #item_image{ width:280px; height:auto; display:block; margin:5px 10px 8px 5px; max-width:100%; }
 
-#location_info_box{ max-height:300px; overflow-y:auto; }
-#location_image{ width:280px; height:auto; display:block; margin:5px 10px 8px 5px; max-width:100%; }
+#location_info_box{ display:flex; flex-direction:row; align-items:flex-start; gap:12px; max-height:300px; overflow:hidden; flex-wrap:nowrap; }
+#location_info_box .info_text{ display:flex; flex:1 1 auto; min-width:0; flex-direction:column; gap:6px; overflow-y:auto; max-height:300px; }
+#location_info_box .info_text .location_name{ display:block; }
+#location_image{ width:160px; height:auto; display:block; margin:5px 10px 8px 5px; max-width:100%; flex:0 0 auto; }
 
-#monster_info_box{ max-height:300px; overflow-y:auto; }
-#monster_image{ width:280px; height:auto; display:block; margin:5px 10px 8px 5px; max-width:100%; }
+#monster_info_box{ display:flex; flex-direction:row; align-items:flex-start; gap:12px; max-height:300px; overflow:hidden; flex-wrap:nowrap; }
+#monster_info_box .info_text{ display:flex; flex:1 1 auto; min-width:0; flex-direction:column; gap:6px; overflow-y:auto; max-height:300px; }
+#monster_info_box .info_text .monster_name{ display:block; }
+#monster_image{ width:160px; height:auto; display:block; margin:5px 10px 8px 5px; max-width:100%; flex:0 0 auto; }
+
+/* Fallback: if flex fails for any reason, float image left so text wraps on the right (float has no effect on flex items) */
+#location_info_box img, #monster_info_box img{ float:left; }
+#location_info_box .info_text, #monster_info_box .info_text{ overflow:hidden; }
 
 #battle_log{ height:240px; overflow-y:auto; }
 #location_stats_box{ height:200px; }

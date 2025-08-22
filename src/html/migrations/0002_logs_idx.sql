@@ -22,7 +22,7 @@ SET @idx_missing := (
 -- Create index only when table exists and index is missing; otherwise no-op
 SET @sql := IF(@tbl_exists = 1 AND @idx_missing = 1,
   'CREATE INDEX idx_logs_action_room_ts ON game_logs (action, room_id, ts);',
-  'SELECT 1');
+  'DO 1');
 
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

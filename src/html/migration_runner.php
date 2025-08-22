@@ -38,7 +38,11 @@ try {
     $pdo = new PDO($dsn, $DB_USERNAME, $DB_PASSWORD, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+        // Use buffered queries to avoid 'Cannot execute queries while other unbuffered queries are active'
+        PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+        // Emulate prepares to further reduce server-side cursor usage
+        PDO::ATTR_EMULATE_PREPARES => true
     ]);
 } catch (Throwable $e) {
     respond('error', ['message' => 'DB connection failed', 'error' => $e->getMessage()]);
@@ -54,9 +58,13 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS schema_migrations (
 // Gather applied migrations
 $applied = [];
 $stmt = $pdo->query('SELECT version, checksum FROM schema_migrations');
-foreach ($stmt as $row) {
+$rows = $stmt->fetchAll();
+foreach ($rows as $row) {
     $applied[$row['version']] = $row['checksum'];
 }
+// Ensure cursor is closed and statement released before executing more statements
+if ($stmt) { $stmt->closeCursor(); }
+$stmt = null;
 
 // Scan migration files
 $dir = __DIR__ . '/migrations';
@@ -97,8 +105,15 @@ function run_sql_batch(PDO $pdo, $sql) {
     // If the file manages its own transactions, execute as-is without wrapping
     if ($hasOwnTxn) {
         foreach ($statements as $stmt) {
-            if (trim($stmt) !== '') {
-                $pdo->exec($stmt);
+            $trimmed = trim($stmt);
+            if ($trimmed !== '') {
+                // Use query+fetchAll for statements that may return a result set to fully buffer and close
+                if (preg_match('/^(SELECT|SHOW|EXECUTE|DESCRIBE|EXPLAIN)\b/i', $trimmed)) {
+                    $res = $pdo->query($stmt);
+                    if ($res) { $res->fetchAll(); $res->closeCursor(); }
+                } else {
+                    $pdo->exec($stmt);
+                }
             }
         }
         return;
@@ -116,8 +131,15 @@ function run_sql_batch(PDO $pdo, $sql) {
 
     try {
         foreach ($statements as $stmt) {
-            if (trim($stmt) !== '') {
-                $pdo->exec($stmt);
+            $trimmed = trim($stmt);
+            if ($trimmed !== '') {
+                // Use query+fetchAll for statements that may return a result set to fully buffer and close
+                if (preg_match('/^(SELECT|SHOW|EXECUTE|DESCRIBE|EXPLAIN)\b/i', $trimmed)) {
+                    $res = $pdo->query($stmt);
+                    if ($res) { $res->fetchAll(); $res->closeCursor(); }
+                } else {
+                    $pdo->exec($stmt);
+                }
             }
         }
         if ($useTxn && $pdo->inTransaction()) {

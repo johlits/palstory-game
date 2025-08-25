@@ -55,20 +55,6 @@ FROM resources_locations");
     #screen_1 { position: relative; z-index: 3; }
 
     /* Sun shafts: individual layers with independent animations */
-    #bg-sunshafts {
-      position: fixed;
-      inset: -10vmax;
-      z-index: 0;
-      pointer-events: none;
-      background-size: 140vmax 140vmax;
-      background-position: 0% 0%;
-      filter: brightness(1);
-      will-change: background-position, opacity, filter;
-      background: radial-gradient(140% 90% at 60% -20%, rgba(255, 248, 225, 0.12), rgba(255, 248, 225, 0) 60%);
-      opacity: 1;
-      animation: shaftsScrollGlow 31s linear infinite;
-    }
-
     #bg-sunshafts-a {
       position: fixed;
       inset: -10vmax;
@@ -133,13 +119,6 @@ FROM resources_locations");
     }
 
     /* Independent scroll animations for each layer */
-    @keyframes shaftsScrollGlow {
-      0%   { background-position: 0% 0%; }
-      25%  { background-position: 1% 0.5%; }
-      50%  { background-position: 2% 1.5%; }
-      75%  { background-position: 1% 0.5%; }
-      100% { background-position: 0% 0%; }
-    }
 
     @keyframes shaftsScrollA {
       0%   { background-position: 0% 0%; }

@@ -35,6 +35,42 @@
       min-height: 100dvh;             /* safe mobile viewport height */
     }
 
+    /* Animated backdrop for menus (room/player creation) */
+    #bg-anim {
+      position: fixed;
+      inset: 0;
+      z-index: -1;              /* behind everything */
+      pointer-events: none;      /* do not block clicks */
+      background: linear-gradient(120deg, #0d0d0d, #1a237e, #004d40, #880e4f, #0d0d0d);
+      background-size: 400% 400%;
+      animation: bgGradient 22s ease infinite;
+    }
+
+    /* Subtle moving glow particles overlay */
+    #bg-anim::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1200px 600px at 10% 20%, rgba(255,255,255,0.05), transparent 60%),
+        radial-gradient(800px 500px at 80% 30%, rgba(255,255,255,0.04), transparent 60%),
+        radial-gradient(900px 600px at 50% 80%, rgba(255,255,255,0.03), transparent 60%);
+      filter: blur(0.5px);
+      animation: bgParallax 40s linear infinite;
+    }
+
+    @keyframes bgGradient {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes bgParallax {
+      0%   { transform: translate3d(0,0,0); }
+      50%  { transform: translate3d(-2%, -1%, 0); }
+      100% { transform: translate3d(0,0,0); }
+    }
+
     /* Canvas should occupy the full viewport area visually */
     #gc {
       display: block;                 /* remove inline gap */
@@ -42,12 +78,24 @@
       height: 100dvh;                 /* avoid browser UI bars issues */
       touch-action: none;             /* disable default gestures */
       -ms-touch-action: none;
+      transition: opacity 250ms ease;
     }
+
+    /* Ensure UI is above canvas if needed */
+    .box, dialog {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* When menus are active, gracefully fade out the canvas to showcase bg */
+    body.menu-active #gc { opacity: 0; }
   </style>
 
 </head>
 
 <body class="game-page" onload="init()">
+
+  <div id="bg-anim" aria-hidden="true"></div>
 
   <canvas id="gc" width="200" height="100">
   </canvas>
@@ -383,3 +431,32 @@
 <script src="js/fog.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/app.js"></script>
+
+<script>
+  // Toggle animated background and canvas fade during menu (create room/player) views
+  (function () {
+    var body = document.body;
+    var boxes = [
+      document.getElementById('create_game_box'),
+      document.getElementById('create_player_box')
+    ];
+
+    function updateMenuState() {
+      var menuVisible = boxes.some(function (el) {
+        if (!el) return false;
+        return !el.classList.contains('hidden');
+      });
+      body.classList.toggle('menu-active', menuVisible);
+    }
+
+    // Observe class changes on the boxes to auto-toggle
+    var mo = new MutationObserver(updateMenuState);
+    boxes.forEach(function (el) {
+      if (!el) return;
+      mo.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    // Run once on load in case a box is already visible
+    window.addEventListener('load', updateMenuState);
+  })();
+</script>

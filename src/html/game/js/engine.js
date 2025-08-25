@@ -370,7 +370,15 @@
           1
         );
         console.log(window.player);
-        try { console.log('player created at', window.player.x, window.player.y); } catch(_){}
+        try { console.log('player created at', window.player.x, window.player.y); } catch(_){ }
+        // One-time reload after player creation to ensure a clean first render
+        try {
+          var _once = sessionStorage.getItem('ps_reload_once');
+          if (!_once) {
+            sessionStorage.setItem('ps_reload_once', '1');
+            setTimeout(function(){ try { window.location.reload(); } catch(_){ } }, 50);
+          }
+        } catch(_){ }
       } catch(e){ try { console.error('failed creating player:', e); } catch(_){} }
 
       // Start loop and initial fetch

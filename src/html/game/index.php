@@ -94,12 +94,6 @@ FROM resources_locations");
   </div>
 
 
-  <div class="row" id="screen_2">
-    <div class="column left">
-      <iframe id="game" src="/story/game/loading.html" title="Game" scrolling="no" frameborder="0"></iframe>
-    </div>
-  </div>
-
 </body>
 
 </html>
@@ -107,8 +101,6 @@ FROM resources_locations");
 <script src="js/vendor/jquery-2.2.4.min.js"></script>
 <script>
   function login() {
-    $("#screen_1").hide();
-    $("#screen_2").show();
     window.location = "/story/game/board.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();
   }
 

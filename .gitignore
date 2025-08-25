@@ -4,9 +4,6 @@
 # Main configuration files
 src/html/story/config.php
 src/html/story/config.js
-src/html/wiki/
-src/html/entrypoint-palstory-test.md
-src/html/entrypoint-palstory-dev.md
 
 # Database files
 *.db

@@ -245,10 +245,6 @@ body.start-page {
   overflow-x: hidden; /* avoid any right-side spill */
 }
 
-.start-page #screen_1 .p-card.p-panel {
-  margin-top: 20px; /* raise login box more */
-}
-
 /* Dust particles removed */
 
 /* Fine dust specks removed */

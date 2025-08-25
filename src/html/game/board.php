@@ -71,6 +71,16 @@
       100% { transform: translate3d(0,0,0); }
     }
 
+    /* Stars canvas layered above gradient, below game canvas */
+    #bg-stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0;                 /* hidden during gameplay */
+      transition: opacity 250ms ease;
+    }
+
     /* Canvas should occupy the full viewport area visually */
     #gc {
       display: block;                 /* remove inline gap */
@@ -89,6 +99,7 @@
 
     /* When menus are active, gracefully fade out the canvas to showcase bg */
     body.menu-active #gc { opacity: 0; }
+    body.menu-active #bg-stars { opacity: 1; }
   </style>
 
 </head>
@@ -96,6 +107,7 @@
 <body class="game-page" onload="init()">
 
   <div id="bg-anim" aria-hidden="true"></div>
+  <canvas id="bg-stars" aria-hidden="true"></canvas>
 
   <canvas id="gc" width="200" height="100">
   </canvas>
@@ -458,5 +470,100 @@
 
     // Run once on load in case a box is already visible
     window.addEventListener('load', updateMenuState);
+  })();
+
+  // Falling glittering stars animation (runs only when menu is visible)
+  (function () {
+    var canvas = document.getElementById('bg-stars');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var dpr = Math.max(1, window.devicePixelRatio || 1);
+    var stars = [];
+    var running = false; // driven by body.menu-active
+    var width = 0, height = 0;
+
+    function resize() {
+      width = Math.floor(window.innerWidth);
+      height = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seed();
+    }
+
+    function seed() {
+      var target = Math.min(220, Math.floor((width * height) / 18000));
+      stars = new Array(target).fill(0).map(function () {
+        return makeStar();
+      });
+    }
+
+    function makeStar() {
+      var size = Math.random() * 1.8 + 0.6; // px
+      var speed = Math.random() * 0.6 + 0.25; // px/frame
+      var twinkleSpeed = Math.random() * 0.04 + 0.01;
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: size,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: speed,
+        a: Math.random() * 0.8 + 0.2, // alpha
+        ta: Math.random() * Math.PI * 2, // twinkle phase
+        ts: twinkleSpeed,
+        hue: 200 + Math.random() * 60 // bluish to teal
+      };
+    }
+
+    function step() {
+      if (running) {
+        ctx.clearRect(0, 0, width, height);
+        for (var i = 0; i < stars.length; i++) {
+          var s = stars[i];
+          s.x += s.vx;
+          s.y += s.vy;
+          s.ta += s.ts;
+          // wrap
+          if (s.y - s.r > height) { s.y = -s.r; s.x = Math.random() * width; }
+          if (s.x < -5) s.x = width + 5; else if (s.x > width + 5) s.x = -5;
+
+          // twinkle alpha
+          var tw = (Math.sin(s.ta) + 1) * 0.5; // 0..1
+          var alpha = Math.max(0, Math.min(1, s.a * (0.6 + 0.7 * tw)));
+
+          // glow gradient
+          var g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+          g.addColorStop(0, 'hsla(' + s.hue + ', 80%, 90%, ' + (alpha) + ')');
+          g.addColorStop(0.4, 'hsla(' + s.hue + ', 80%, 70%, ' + (alpha * 0.6) + ')');
+          g.addColorStop(1, 'hsla(' + s.hue + ', 80%, 50%, 0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // bright core sparkle
+          ctx.fillStyle = 'hsla(' + s.hue + ', 100%, 98%, ' + Math.min(1, alpha * 1.2) + ')';
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, Math.max(0.5, s.r * 0.6), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    // Hook into the existing menu visibility toggling
+    function updateRunning() {
+      running = document.body.classList.contains('menu-active');
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', resize);
+    window.addEventListener('load', function () { resize(); updateRunning(); });
+    // Observe body class changes to start/stop animation work
+    new MutationObserver(updateRunning).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    requestAnimationFrame(step);
   })();
 </script>

@@ -52,59 +52,48 @@ FROM resources_locations");
     }
 
     /* Place content above decorative backgrounds */
-    #screen_1 { position: relative; z-index: 2; }
+    #screen_1 { position: relative; z-index: 3; }
 
-    /* Sun shafts: very soft, slowly drifting diagonal light beams */
+    /* Sun shafts: layered, soft diagonal beams with slight center glow */
     #bg-sunshafts {
       position: fixed;
       inset: -10vmax; /* oversize to prevent edge reveal */
       z-index: 0;
       pointer-events: none;
-      background: repeating-linear-gradient(
-        115deg,
-        rgba(255, 244, 214, 0.22) 0px,
-        rgba(255, 244, 214, 0.22) 160px,
-        rgba(255, 244, 214, 0.00) 260px,
-        rgba(255, 244, 214, 0.00) 440px
-      );
+      background:
+        radial-gradient(140% 90% at 60% -20%, rgba(255, 248, 225, 0.10), rgba(255, 248, 225, 0) 60%),
+        repeating-linear-gradient(
+          115deg,
+          rgba(255, 244, 214, 0.18) 0px,
+          rgba(255, 244, 214, 0.18) 120px,
+          rgba(255, 244, 214, 0.00) 220px,
+          rgba(255, 244, 214, 0.00) 440px
+        ),
+        repeating-linear-gradient(
+          115deg,
+          rgba(255, 255, 255, 0.08) 60px,
+          rgba(255, 255, 255, 0.08) 190px,
+          rgba(255, 255, 255, 0.00) 280px,
+          rgba(255, 255, 255, 0.00) 460px
+        );
       /* Render normally to ensure visibility across browsers */
       opacity: 0.9;
-      background-size: 140vmax 140vmax;
-      background-position: 0% 0%;
+      background-size: 140vmax 140vmax, 140vmax 140vmax, 140vmax 140vmax;
+      background-position: 0% 0%, 0% 0%, 0% 0%;
       animation: shaftsScroll 28s linear infinite;
     }
 
     @keyframes shaftsScroll {
-      0%   { background-position: 0% 0%; }
-      50%  { background-position: 8% 6%; }
-      100% { background-position: 0% 0%; }
+      0%   { background-position: 0% 0%, 0% 0%, 0% 0%; }
+      50%  { background-position: 6% 4%, 9% 7%, -4% -3%; }
+      100% { background-position: 0% 0%, 0% 0%, 0% 0%; }
     }
 
-    /* Dappled leaf shade: clusters of soft shadow spots gently swaying */
-    #bg-leafshade {
-      position: fixed;
-      inset: -8vmax; /* oversize to prevent edge reveal during sway */
-      z-index: 1; /* above shafts for subtle occlusion */
-      pointer-events: none;
-      background-image:
-        radial-gradient(300px 220px at 15% 20%, rgba(0,0,0,0.20), rgba(0,0,0,0) 60%),
-        radial-gradient(260px 200px at 40% 30%, rgba(0,0,0,0.17), rgba(0,0,0,0) 60%),
-        radial-gradient(340px 240px at 70% 25%, rgba(0,0,0,0.19), rgba(0,0,0,0) 60%),
-        radial-gradient(300px 220px at 20% 70%, rgba(0,0,0,0.18), rgba(0,0,0,0) 60%),
-        radial-gradient(280px 220px at 80% 75%, rgba(0,0,0,0.20), rgba(0,0,0,0) 60%);
-      filter: blur(0.6px);
-      animation: leavesSway 36s ease-in-out infinite;
-    }
-
-    @keyframes leavesSway {
-      0%   { transform: translate3d(0,0,0) scale(1); }
-      50%  { transform: translate3d(-1.8%, -1.2%, 0) scale(1.02); }
-      100% { transform: translate3d(0,0,0) scale(1); }
-    }
+    /* Leaf shade removed */
 
     /* Respect users who prefer reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      #bg-sunshafts, #bg-leafshade { animation: none; }
+      #bg-sunshafts { animation: none; }
     }
 
     /* Layout tweaks specific to the start page */
@@ -119,6 +108,10 @@ FROM resources_locations");
     .start-page #screen_1 .p-card.p-panel {
       margin-top: 20px; /* raise login box more */
     }
+
+    /* Dust particles removed */
+
+    /* Fine dust specks removed */
   </style>
   
 </head>
@@ -127,7 +120,6 @@ FROM resources_locations");
 
   <!-- Decorative background overlays -->
   <div id="bg-sunshafts" aria-hidden="true"></div>
-  <div id="bg-leafshade" aria-hidden="true"></div>
 
   <!-- Header -->
   <header class="p-header p-panel">

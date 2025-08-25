@@ -54,46 +54,135 @@ FROM resources_locations");
     /* Place content above decorative backgrounds */
     #screen_1 { position: relative; z-index: 3; }
 
-    /* Sun shafts: layered, soft diagonal beams with slight center glow */
+    /* Sun shafts: individual layers with independent animations */
     #bg-sunshafts {
       position: fixed;
-      inset: -10vmax; /* oversize to prevent edge reveal */
+      inset: -10vmax;
       z-index: 0;
       pointer-events: none;
-      background:
-        radial-gradient(140% 90% at 60% -20%, rgba(255, 248, 225, 0.10), rgba(255, 248, 225, 0) 60%),
-        repeating-linear-gradient(
-          115deg,
-          rgba(255, 244, 214, 0.18) 0px,
-          rgba(255, 244, 214, 0.18) 120px,
-          rgba(255, 244, 214, 0.00) 220px,
-          rgba(255, 244, 214, 0.00) 440px
-        ),
-        repeating-linear-gradient(
-          115deg,
-          rgba(255, 255, 255, 0.08) 60px,
-          rgba(255, 255, 255, 0.08) 190px,
-          rgba(255, 255, 255, 0.00) 280px,
-          rgba(255, 255, 255, 0.00) 460px
-        );
-      /* Render normally to ensure visibility across browsers */
-      opacity: 0.9;
-      background-size: 140vmax 140vmax, 140vmax 140vmax, 140vmax 140vmax;
-      background-position: 0% 0%, 0% 0%, 0% 0%;
-      animation: shaftsScroll 28s linear infinite;
+      background-size: 140vmax 140vmax;
+      background-position: 0% 0%;
+      filter: brightness(1);
+      will-change: background-position, opacity, filter;
+      background: radial-gradient(140% 90% at 60% -20%, rgba(255, 248, 225, 0.12), rgba(255, 248, 225, 0) 60%);
+      opacity: 1;
+      animation: shaftsScrollGlow 31s linear infinite;
     }
 
-    @keyframes shaftsScroll {
-      0%   { background-position: 0% 0%, 0% 0%, 0% 0%; }
-      50%  { background-position: 6% 4%, 9% 7%, -4% -3%; }
-      100% { background-position: 0% 0%, 0% 0%, 0% 0%; }
+    #bg-sunshafts-a {
+      position: fixed;
+      inset: -10vmax;
+      z-index: 0;
+      pointer-events: none;
+      background-size: 140vmax 140vmax;
+      background-position: 0% 0%;
+      filter: brightness(1);
+      will-change: background-position, opacity, filter;
+      background: repeating-linear-gradient(
+        116deg,
+        rgba(255, 244, 214, 0.24) 0px,
+        rgba(255, 244, 214, 0.24) 115px,
+        rgba(255, 244, 214, 0.00) 210px,
+        rgba(255, 244, 214, 0.00) 430px
+      );
+      opacity: .75;
+      animation: shaftsScrollA 23s linear infinite, shaftsPulseA 13s ease-in-out infinite;
+      animation-delay: 0s, 0s;
+    }
+
+    #bg-sunshafts-b {
+      position: fixed;
+      inset: -10vmax;
+      z-index: 0;
+      pointer-events: none;
+      background-size: 140vmax 140vmax;
+      background-position: 0% 0%;
+      filter: brightness(1);
+      will-change: background-position, opacity, filter;
+      background: repeating-linear-gradient(
+        119deg,
+        rgba(255, 255, 255, 0.12) 55px,
+        rgba(255, 255, 255, 0.12) 185px,
+        rgba(255, 255, 255, 0.00) 275px,
+        rgba(255, 255, 255, 0.00) 455px
+      );
+      opacity: .55;
+      animation: shaftsScrollB 37s linear infinite, shaftsPulseB 19s ease-in-out infinite;
+      animation-delay: 3s, 7s;
+    }
+
+    #bg-sunshafts-c {
+      position: fixed;
+      inset: -10vmax;
+      z-index: 0;
+      pointer-events: none;
+      background-size: 140vmax 140vmax;
+      background-position: 0% 0%;
+      filter: brightness(1);
+      will-change: background-position, opacity, filter;
+      background: repeating-linear-gradient(
+        113deg,
+        rgba(255, 253, 240, 0.14) 25px,
+        rgba(255, 253, 240, 0.14) 165px,
+        rgba(255, 253, 240, 0.00) 255px,
+        rgba(255, 253, 240, 0.00) 475px
+      );
+      opacity: .45;
+      animation: shaftsScrollC 41s linear infinite, shaftsPulseC 29s ease-in-out infinite;
+      animation-delay: 8s, 14s;
+    }
+
+    /* Independent scroll animations for each layer */
+    @keyframes shaftsScrollGlow {
+      0%   { background-position: 0% 0%; }
+      25%  { background-position: 1% 0.5%; }
+      50%  { background-position: 2% 1.5%; }
+      75%  { background-position: 1% 0.5%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    @keyframes shaftsScrollA {
+      0%   { background-position: 0% 0%; }
+      30%  { background-position: 3% 1%; }
+      70%  { background-position: 5% 3%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    @keyframes shaftsScrollB {
+      0%   { background-position: 0% 0%; }
+      40%  { background-position: 2% 2%; }
+      80%  { background-position: 4% 1%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    @keyframes shaftsScrollC {
+      0%   { background-position: 0% 0%; }
+      20%  { background-position: 1% 1%; }
+      60%  { background-position: 3% 2%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    /* Ultra-smooth pulse animations with minimal brightness changes */
+    @keyframes shaftsPulseA {
+      0%, 100% { opacity: 0.35; filter: brightness(0.98); }
+      50%      { opacity: 0.75; filter: brightness(1.12); }
+    }
+
+    @keyframes shaftsPulseB {
+      0%, 100% { opacity: 0.25; filter: brightness(0.96); }
+      50%      { opacity: 0.65; filter: brightness(1.08); }
+    }
+
+    @keyframes shaftsPulseC {
+      0%, 100% { opacity: 0.3; filter: brightness(0.97); }
+      50%      { opacity: 0.7; filter: brightness(1.1); }
     }
 
     /* Leaf shade removed */
 
     /* Respect users who prefer reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      #bg-sunshafts { animation: none; }
+      #bg-sunshafts, #bg-sunshafts-a, #bg-sunshafts-b, #bg-sunshafts-c { animation: none; }
     }
 
     /* Layout tweaks specific to the start page */
@@ -119,7 +208,9 @@ FROM resources_locations");
 <body class="start-page" style="--start-bg: url('<? echo getImageUrl($bg); ?>')">
 
   <!-- Decorative background overlays -->
-  <div id="bg-sunshafts" aria-hidden="true"></div>
+  <div id="bg-sunshafts-a" aria-hidden="true"></div>
+  <div id="bg-sunshafts-b" aria-hidden="true"></div>
+  <div id="bg-sunshafts-c" aria-hidden="true"></div>
 
   <!-- Header -->
   <header class="p-header p-panel">
@@ -246,6 +337,9 @@ FROM resources_locations");
       console.error("error: " + error);
     },
   });
+
+    // Pure CSS implementation with optimized performance
+
   }); 
 
 </script>

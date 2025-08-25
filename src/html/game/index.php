@@ -118,6 +118,67 @@ FROM resources_locations");
       animation-delay: 8s, 14s;
     }
 
+    /* Small particles behind sunrays */
+    #bg-particles-back {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.6), transparent 2px),
+        radial-gradient(circle at 72% 35%, rgba(255, 255, 255, 0.5), transparent 1px),
+        radial-gradient(circle at 35% 60%, rgba(255, 255, 255, 0.7), transparent 2px),
+        radial-gradient(circle at 88% 75%, rgba(255, 255, 255, 0.4), transparent 1px);
+      background-size: 100vw 100vh;
+      animation: particleFloatSlow 73s linear infinite, particlePulseSlow 43s ease-in-out infinite;
+    }
+
+    /* Medium particles in front of sunrays */
+    #bg-particles {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(circle at 12% 15%, rgba(255, 255, 255, 0.9), transparent 3px),
+        radial-gradient(circle at 85% 25%, rgba(255, 255, 255, 0.8), transparent 2px),
+        radial-gradient(circle at 45% 35%, rgba(255, 255, 255, 0.7), transparent 4px),
+        radial-gradient(circle at 78% 55%, rgba(255, 255, 255, 0.85), transparent 2px);
+      background-size: 100vw 100vh;
+      animation: particleFloat 47s linear infinite, particlePulse 31s ease-in-out infinite;
+    }
+
+    /* Large particles in front of sunrays */
+    #bg-particles-large {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.8), transparent 6px),
+        radial-gradient(circle at 70% 50%, rgba(255, 255, 255, 0.7), transparent 8px),
+        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.75), transparent 7px);
+      background-size: 100vw 100vh;
+      animation: particleFloatLarge 67s linear infinite, particlePulseLarge 37s ease-in-out infinite;
+    }
+
+    /* Leaf shadows creating tree canopy effect */
+    #bg-leaves {
+      position: fixed;
+      inset: -5vmax;
+      z-index: 1;
+      pointer-events: none;
+      background-image:
+        radial-gradient(ellipse 80px 40px at 20% 10%, rgba(0, 50, 0, 0.15), transparent 70%),
+        radial-gradient(ellipse 60px 30px at 75% 15%, rgba(0, 40, 0, 0.12), transparent 70%),
+        radial-gradient(ellipse 100px 50px at 45% 5%, rgba(0, 45, 0, 0.18), transparent 70%),
+        radial-gradient(ellipse 70px 35px at 85% 25%, rgba(0, 35, 0, 0.14), transparent 70%),
+        radial-gradient(ellipse 90px 45px at 15% 30%, rgba(0, 50, 0, 0.16), transparent 70%),
+        radial-gradient(ellipse 65px 32px at 65% 8%, rgba(0, 42, 0, 0.13), transparent 70%);
+      background-size: 100vw 100vh;
+      animation: leafSway 53s ease-in-out infinite;
+    }
+
     /* Independent scroll animations for each layer */
 
     @keyframes shaftsScrollA {
@@ -157,11 +218,63 @@ FROM resources_locations");
       50%      { opacity: 0.7; filter: brightness(1.1); }
     }
 
+    /* Medium particle animations */
+    @keyframes particleFloat {
+      0%   { transform: translateY(0px) translateX(0px); }
+      25%  { transform: translateY(-8px) translateX(3px); }
+      50%  { transform: translateY(-12px) translateX(-2px); }
+      75%  { transform: translateY(-6px) translateX(4px); }
+      100% { transform: translateY(0px) translateX(0px); }
+    }
+
+    @keyframes particlePulse {
+      0%, 100% { transform: scale(0.8); }
+      20%      { transform: scale(1.2); }
+      40%      { transform: scale(0.9); }
+      60%      { transform: scale(1.4); }
+      80%      { transform: scale(1.0); }
+    }
+
+    /* Small particle animations (slower) */
+    @keyframes particleFloatSlow {
+      0%   { transform: translateY(0px) translateX(0px); }
+      30%  { transform: translateY(-5px) translateX(2px); }
+      60%  { transform: translateY(-8px) translateX(-1px); }
+      90%  { transform: translateY(-3px) translateX(2px); }
+      100% { transform: translateY(0px) translateX(0px); }
+    }
+
+    @keyframes particlePulseSlow {
+      0%, 100% { transform: scale(0.6); }
+      50%      { transform: scale(1.0); }
+    }
+
+    /* Large particle animations (slowest) */
+    @keyframes particleFloatLarge {
+      0%   { transform: translateY(0px) translateX(0px); }
+      40%  { transform: translateY(-4px) translateX(1px); }
+      80%  { transform: translateY(-6px) translateX(-1px); }
+      100% { transform: translateY(0px) translateX(0px); }
+    }
+
+    @keyframes particlePulseLarge {
+      0%, 100% { transform: scale(0.7); }
+      30%      { transform: scale(1.1); }
+      70%      { transform: scale(0.9); }
+    }
+
+    /* Leaf swaying animation */
+    @keyframes leafSway {
+      0%, 100% { transform: translateX(0px) rotate(0deg); }
+      30%      { transform: translateX(2px) rotate(0.5deg); }
+      70%      { transform: translateX(-1px) rotate(-0.3deg); }
+    }
+
     /* Leaf shade removed */
 
     /* Respect users who prefer reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      #bg-sunshafts, #bg-sunshafts-a, #bg-sunshafts-b, #bg-sunshafts-c { animation: none; }
+      #bg-sunshafts-a, #bg-sunshafts-b, #bg-sunshafts-c, #bg-particles, #bg-particles-back, #bg-particles-large, #bg-leaves { animation: none; }
     }
 
     /* Layout tweaks specific to the start page */
@@ -187,9 +300,13 @@ FROM resources_locations");
 <body class="start-page" style="--start-bg: url('<? echo getImageUrl($bg); ?>')">
 
   <!-- Decorative background overlays -->
+  <div id="bg-particles-back" aria-hidden="true"></div>
   <div id="bg-sunshafts-a" aria-hidden="true"></div>
   <div id="bg-sunshafts-b" aria-hidden="true"></div>
   <div id="bg-sunshafts-c" aria-hidden="true"></div>
+  <div id="bg-particles" aria-hidden="true"></div>
+  <div id="bg-leaves" aria-hidden="true"></div>
+  <div id="bg-particles-large" aria-hidden="true"></div>
 
   <!-- Header -->
   <header class="p-header p-panel">

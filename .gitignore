@@ -4,6 +4,7 @@
 # Main configuration files
 src/html/story/config.php
 src/html/story/config.js
+src/html/wiki/
 
 # Database files
 *.db

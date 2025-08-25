@@ -37,10 +37,10 @@ else if (isset($_POST["secret"]) && !empty($_POST['secret'])) {
 if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SESSION['secret'] != super_admin_game())) {
 ?>
 <div class="create-header">
-  <div><a href="/story/">Home</a></div>
+  <div><a href="/story/game/">Home</a></div>
 </div>
 <div class="center-abs box">
-<form action="/story/create.php" method="post">
+<form action="/story/game/create.php" method="post">
   <label for="secret">Password:</label><br>
   <input type="password" id="secret" name="secret" value="" autofocus><br/><br/>
   <input type="submit" value="Submit">
@@ -51,9 +51,9 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
 ?>
 
   <div class="create-header">
-    <div><b><a href="/story/">Home</a></b></div>
+    <div><b><a href="/story/game/">Home</a></b></div>
     <div>
-      <form name="logoutForm" action="/story/create.php" method="post">
+      <form name="logoutForm" action="/story/game/create.php" method="post">
         <input class="hidden" type="password" id="logout" name="logout" value="1">
         <a href="javascript:document.forms['logoutForm'].submit()">Log out</a>
       </form>

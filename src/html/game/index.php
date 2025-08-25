@@ -46,8 +46,8 @@ FROM resources_locations");
   <!-- Header -->
   <header class="p-header p-panel">
     <nav class="p-nav">
-      <a class="p-link" href="/story/create.php">Admin</a>
-      <a class="p-link" href="/story/credits.html">Credits</a>
+      <a class="p-link" href="/story/game/create.php">Admin</a>
+      <a class="p-link" href="/story/game/credits.html">Credits</a>
     </nav>
     <?php $headerItems = fetch_header_items(); ?>
     <div class="p-header-center" id="header_center">
@@ -88,7 +88,7 @@ FROM resources_locations");
 
       <div class="p-actions">
         <button id="login_btn" class="p-btn" onclick="login()">Play</button>
-        <a class="p-demo" href="/story/game.php?room=room<? echo rand(0,999); ?>&player=user<? echo rand(0,999); ?>">Try a demo room</a>
+        <a class="p-demo" href="/story/game/game.php?room=room<? echo rand(0,999); ?>&player=user<? echo rand(0,999); ?>">Try a demo room</a>
       </div>
     </div>
   </div>
@@ -96,7 +96,7 @@ FROM resources_locations");
 
   <div class="row" id="screen_2">
     <div class="column left">
-      <iframe id="game" src="/story/loading.html" title="Game" scrolling="no" frameborder="0"></iframe>
+      <iframe id="game" src="/story/game/loading.html" title="Game" scrolling="no" frameborder="0"></iframe>
     </div>
   </div>
 
@@ -109,7 +109,7 @@ FROM resources_locations");
   function login() {
     $("#screen_1").hide();
     $("#screen_2").show();
-    window.location = "/story/game.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();
+    window.location = "/story/game/game.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();
   }
 
   document.getElementById("room_name").addEventListener("keypress", function (event) {

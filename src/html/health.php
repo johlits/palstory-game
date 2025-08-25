@@ -3,7 +3,7 @@
 header('Content-Type: application/json');
 
 try {
-  // Reuse environment like story/config.php
+  // Reuse environment like story/game/config.php
   $server = $_ENV['DB_SERVER'] ?? 'database';
   $user = $_ENV['DB_USERNAME'] ?? 'root';
   $pass = $_ENV['DB_PASSWORD'] ?? '';

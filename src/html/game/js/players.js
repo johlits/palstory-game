@@ -86,7 +86,8 @@
 
                 var baseX = (window.player && typeof window.player.x === 'number') ? window.player.x : (window.w / 2);
                 var baseY = (window.player && typeof window.player.y === 'number') ? window.player.y : (window.h / 2);
-                var temp_player = new component(
+                var Comp = (window.Engine && typeof window.Engine.component === 'function') ? window.Engine.component : component;
+                var temp_player = new Comp(
                   tid,
                   ss,
                   ss,

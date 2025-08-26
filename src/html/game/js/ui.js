@@ -201,6 +201,164 @@
     } catch (_) {}
   })();
 
+  // Blocked reason tooltip (lightweight)
+  (function setupBlockedTooltip(){
+    try {
+      if (document.getElementById('blocked-tooltip')) return;
+      var tip = document.createElement('div');
+      tip.id = 'blocked-tooltip';
+      tip.style.position = 'fixed';
+      tip.style.pointerEvents = 'none';
+      tip.style.background = 'rgba(0,0,0,0.8)';
+      tip.style.color = '#fff';
+      tip.style.padding = '3px 6px';
+      tip.style.fontSize = '12px';
+      tip.style.borderRadius = '4px';
+      tip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+      tip.style.zIndex = '10001';
+      tip.style.display = 'none';
+      document.body.appendChild(tip);
+      window.__blockedTip = tip;
+    } catch(_) {}
+  })();
+
+  // Options Modal (opened by 'O')
+  ;(function setupOptionsModal(){
+    try {
+      // Initialize overlay setting from localStorage
+      try {
+        var stored = localStorage.getItem('ps_showBlockedOverlay');
+        if (stored === 'true' || stored === 'false') {
+          window.showBlockedOverlay = (stored === 'true');
+        }
+      } catch(_) {}
+
+      if (document.getElementById('ps-options')) return;
+      // Backdrop
+      var backdrop = document.createElement('div');
+      backdrop.id = 'ps-options-backdrop';
+      Object.assign(backdrop.style, {
+        position: 'fixed', left: '0', top: '0', right: '0', bottom: '0',
+        background: 'rgba(0,0,0,0.45)', zIndex: '10000', display: 'none'
+      });
+      // Modal
+      var modal = document.createElement('div');
+      modal.id = 'ps-options';
+      Object.assign(modal.style, {
+        position: 'fixed', left: '50%', top: '30%', transform: 'translate(-50%, -30%)',
+        minWidth: '260px', padding: '12px 14px', background: '#1a1a1a', color: '#fff',
+        borderRadius: '8px', boxShadow: '0 6px 24px rgba(0,0,0,0.45)', zIndex: '10001', display: 'none'
+      });
+
+      var header = document.createElement('div');
+      header.textContent = 'Options';
+      header.style.fontWeight = '600';
+      header.style.marginBottom = '8px';
+      modal.appendChild(header);
+
+      function makeRow(labelText, initCheckedFn, onChangeFn) {
+        var row = document.createElement('label');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.margin = '6px 0';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!initCheckedFn();
+        var span = document.createElement('span');
+        span.textContent = labelText;
+        row.appendChild(cb); row.appendChild(span);
+        cb.addEventListener('change', function(){
+          try { if (typeof window.playSound === 'function') playSound(getImageUrl('click.mp3')); } catch(_) {}
+          onChangeFn(!!cb.checked);
+        });
+        modal.appendChild(row);
+        return { row: row, cb: cb };
+      }
+
+      // Show blocked tiles
+      var blockedRow = makeRow('Show blocked tiles', function(){
+        return (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
+      }, function(checked){
+        window.showBlockedOverlay = !!checked;
+        try { localStorage.setItem('ps_showBlockedOverlay', window.showBlockedOverlay ? 'true' : 'false'); } catch(_) {}
+      });
+
+      // Audio: SFX
+      var sfxRow = makeRow('Sound effects (SFX)', function(){
+        var pref = null; try { pref = localStorage.getItem('palstory-sfx'); } catch(_) {}
+        if (pref === '0') return false;
+        if (pref === '1') return true;
+        return (typeof window.sfx === 'number') ? (window.sfx === 1) : true;
+      }, function(checked){
+        if (window.AudioCtl && typeof window.AudioCtl.getSfx === 'function') window.AudioCtl.getSfx(checked ? 1 : 0);
+      });
+
+      // Audio: BGM
+      var bgmRow = makeRow('Background music (BGM)', function(){
+        var pref = null; try { pref = localStorage.getItem('palstory-bgm'); } catch(_) {}
+        if (pref === '1') return true;
+        if (pref === '0') return false;
+        return (typeof window.bgm === 'number') ? (window.bgm === 1) : false;
+      }, function(checked){
+        if (window.AudioCtl && typeof window.AudioCtl.getMusic === 'function') window.AudioCtl.getMusic(checked ? 1 : 0);
+        if (checked && window.AudioCtl && typeof window.AudioCtl.setupBgmUnlockOnce === 'function') window.AudioCtl.setupBgmUnlockOnce();
+      });
+
+      // Audio: TTS
+      var ttsRow = makeRow('Text-to-speech (TTS)', function(){
+        return (typeof window.t2s === 'number') ? (window.t2s === 1) : true;
+      }, function(checked){
+        if (window.AudioCtl && typeof window.AudioCtl.getT2s === 'function') window.AudioCtl.getT2s(checked ? 1 : 0);
+      });
+
+      var actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.justifyContent = 'flex-end';
+      actions.style.gap = '8px';
+      var closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close (Esc)';
+      closeBtn.style.padding = '6px 10px';
+      closeBtn.style.cursor = 'pointer';
+      actions.appendChild(closeBtn);
+      modal.appendChild(actions);
+
+      // (removed) stray listener referencing undefined 'cb'
+
+      function openOptions(){
+        try { if (typeof window.playSound === 'function') playSound(getImageUrl('click.mp3')); } catch(_) {}
+        blockedRow.cb.checked = (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
+        // refresh audio checkboxes to reflect current state
+        try {
+          var sfxPref = localStorage.getItem('palstory-sfx');
+          sfxRow.cb.checked = (sfxPref === '0') ? false : true;
+        } catch(_) { sfxRow.cb.checked = (typeof window.sfx === 'number') ? (window.sfx === 1) : true; }
+        try {
+          var bgmPref = localStorage.getItem('palstory-bgm');
+          if (bgmPref === '1') bgmRow.cb.checked = true; else if (bgmPref === '0') bgmRow.cb.checked = false; else bgmRow.cb.checked = (typeof window.bgm === 'number') ? (window.bgm === 1) : false;
+        } catch(_) { bgmRow.cb.checked = (typeof window.bgm === 'number') ? (window.bgm === 1) : false; }
+        ttsRow.cb.checked = (typeof window.t2s === 'number') ? (window.t2s === 1) : true;
+        backdrop.style.display = 'block';
+        modal.style.display = 'block';
+      }
+      function closeOptions(){
+        backdrop.style.display = 'none';
+        modal.style.display = 'none';
+      }
+      closeBtn.addEventListener('click', closeOptions);
+      backdrop.addEventListener('click', closeOptions);
+      window.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeOptions(); });
+
+      document.body.appendChild(backdrop);
+      document.body.appendChild(modal);
+
+      // expose controls
+      window.UI = window.UI || {};
+      window.UI.openOptions = openOptions;
+      window.UI.closeOptions = closeOptions;
+    } catch(_) {}
+  })();
+
   // Always-on-top Help overlay (overlaps everything)
   (function setupHelpOverlay(){
     try {
@@ -265,6 +423,24 @@
         try { $("#mouse_x").text(window.bX(window.mX)); } catch (_) {}
         try { $("#mouse_y").text(window.bY(window.mY)); } catch (_) {}
       }
+
+      // Tooltip: show reason when hovering an adjacent blocked tile
+      try {
+        var tip = window.__blockedTip;
+        if (tip && window.Locations && typeof window.Locations.isPassable === 'function') {
+          var isAdj = (Math.abs(window.player_x - window.mX) + Math.abs(window.player_y - window.mY) === 1);
+          var passable = window.Locations.isPassable(window.mX, window.mY);
+          if (isAdj && !passable) {
+            var reason = (typeof window.Locations.getBlockReason === 'function') ? (window.Locations.getBlockReason(window.mX, window.mY) || 'Blocked') : 'Blocked';
+            tip.textContent = reason;
+            tip.style.left = Math.round(mousePos.x + 12) + 'px';
+            tip.style.top = Math.round(mousePos.y + 12) + 'px';
+            tip.style.display = 'block';
+          } else {
+            tip.style.display = 'none';
+          }
+        }
+      } catch(_) {}
     } catch (_) {}
   };
 
@@ -551,6 +727,14 @@
         case 66: if ($("#monster_box").is(':visible') && window.UI && typeof UI.toggleMonsterStats === 'function') UI.toggleMonsterStats(); break;
         case 78: if ($("#monster_box").is(':visible') && window.UI && typeof UI.toggleBattleLog === 'function') UI.toggleBattleLog(); break;
         case 77: if ($("#monster_box").is(':visible') && window.Combat && typeof Combat.attack === 'function') Combat.attack(); break;
+        case 79: { // O: open/close Options modal
+          try {
+            var opts = document.getElementById('ps-options');
+            if (opts && opts.style.display === 'block') { if (window.UI && typeof UI.closeOptions === 'function') UI.closeOptions(); }
+            else { if (window.UI && typeof UI.openOptions === 'function') UI.openOptions(); }
+          } catch(_) {}
+          break;
+        }
         case 72:
           if ($("#help-dialog").is(':visible')) { $("#close_help_btn").click(); }
           else { try { playSound(getImageUrl("click.mp3")); } catch (_) {} document.getElementById('help-dialog').showModal(); }

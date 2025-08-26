@@ -55,12 +55,53 @@
               try { landscape.gstats = response[0].gstats || ""; } catch(_) { landscape.gstats = ""; }
               locationsDict[key] = landscape;
             }
+
+  // Return a short human-readable reason string if tile is blocked; otherwise null
+  function getBlockReason(x, y) {
+    try {
+      var key = '' + x + ',' + y;
+      var tile = (window.locationsDict && window.locationsDict[key]) ? window.locationsDict[key] : null;
+      if (!tile) return null;
+      var gs = '' + (typeof tile.gstats !== 'undefined' ? (tile.gstats || '') : '');
+      var st = '' + (typeof tile.stats !== 'undefined' ? (tile.stats || '') : '');
+      if (/(^|;)blocked=1(;|$)/.test(gs)) return 'Blocked';
+      if (/(^|;)passable=0(;|$)/.test(gs)) return 'Impassable';
+      if (/(^|;)walk=0(;|$)/.test(gs)) return 'No walking';
+      if (/(^|;)blocked=1(;|$)/.test(st)) return 'Blocked';
+      if (/(^|;)impassable=1(;|$)/.test(st)) return 'Impassable';
+      return null;
+    } catch(_) { return null; }
+  }
           })
           .catch(function (err) {
             console.error("error: " + err);
           });
       }
     });
+  }
+
+  // Basic passability check using per-tile stats
+  // Accepts multiple flags for flexibility:
+  // - gstats: walk=0 | passable=0 | blocked=1
+  // - stats:  impassable=1 | blocked=1
+  function isPassable(x, y) {
+    try {
+      var key = '' + x + ',' + y;
+      var tile = (window.locationsDict && window.locationsDict[key]) ? window.locationsDict[key] : null;
+      if (!tile) return true; // unknown tiles are assumed passable (server will validate)
+      var gs = '' + (typeof tile.gstats !== 'undefined' ? (tile.gstats || '') : '');
+      var st = '' + (typeof tile.stats !== 'undefined' ? (tile.stats || '') : '');
+      // Normalize to simple semicolon-separated key=value list
+      var blocked = false;
+      if (/(^|;)walk=0(;|$)/.test(gs)) blocked = true;
+      if (/(^|;)passable=0(;|$)/.test(gs)) blocked = true;
+      if (/(^|;)blocked=1(;|$)/.test(gs)) blocked = true;
+      if (!blocked) {
+        if (/(^|;)impassable=1(;|$)/.test(st)) blocked = true;
+        if (/(^|;)blocked=1(;|$)/.test(st)) blocked = true;
+      }
+      return !blocked;
+    } catch(_) { return true; }
   }
 
   function getAllLocations(newX, newY, dX, dY) {
@@ -180,6 +221,8 @@
 
   window.Locations.ensureAdjacentTilesVisible = ensureAdjacentTilesVisible;
   window.Locations.getAllLocations = getAllLocations;
+  window.Locations.isPassable = isPassable;
+  window.Locations.getBlockReason = getBlockReason;
   // Populate #location_box for a given tile (defaults to current tile)
   window.Locations.showLocationBox = function(cx, cy){
     try {

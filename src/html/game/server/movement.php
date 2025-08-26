@@ -136,6 +136,37 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
     }
     $sls->close();
 
+    // Authoritative passability check on the target tile (after ensuring it exists or was spawned)
+    try {
+      $gstats = '';
+      $stats = '';
+      $lp = $db->prepare("SELECT game_locations.stats AS gstats, resources_locations.stats AS stats FROM game_locations LEFT JOIN resources_locations ON game_locations.resource_id = resources_locations.id WHERE game_locations.room_id = ? AND x = ? AND y = ? LIMIT 1");
+      if ($lp) {
+        $lp->bind_param("iii", $room_id, $x, $y);
+        if ($lp->execute()) {
+          $lpr = $lp->get_result();
+          if ($lprow = mysqli_fetch_array($lpr)) { $gstats = strval($lprow['gstats']); $stats = strval($lprow['stats']); }
+        }
+        $lp->close();
+      }
+      if ($gstats !== '' || $stats !== '') {
+        if (!isLocationPassable($gstats, $stats)) {
+          // Telemetry: movement blocked by passability
+          try {
+            $detb = json_encode([ 'from' => [$prevx,$prevy], 'attempt' => [$x,$y], 'reason' => 'blocked' ]);
+            if ($detb === false) { $detb = '{"reason":"blocked"}'; }
+            if ($lgb = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'move_blocked_passability', ?)")) {
+              $lgb->bind_param("iss", $room_id, $player_name, $detb);
+              $lgb->execute();
+              $lgb->close();
+            }
+          } catch (Throwable $_) { }
+          array_push($arr, 'err', 'blocked');
+          return $arr;
+        }
+      }
+    } catch (Throwable $_) { /* ignore passability errors; default to allow */ }
+
     if ($newloc == true) {
       $us = $db->prepare("UPDATE game_players 
             SET x=?, y=? 

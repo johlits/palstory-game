@@ -186,6 +186,31 @@
         var loc = window.locations[i]; loc.newPos(dt);
         if (typeof window.isOnScreenRect === 'function' ? window.isOnScreenRect(loc.x, loc.y, loc.width, loc.height, window.ss) : true) { loc.update(); }
       }
+      // Accessibility: highlight blocked adjacent tiles with a subtle red outline
+      try {
+        if (typeof window.showBlockedOverlay === 'undefined') window.showBlockedOverlay = true;
+        if (window.showBlockedOverlay && window.player && window.locationsDict && window.Locations && typeof window.Locations.isPassable === 'function') {
+          var ctx2 = window.myGameArea.context; var ss2 = window.ss;
+          var adj = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+          for (var a = 0; a < adj.length; a++) {
+            var nx = window.player_x + adj[a].dx;
+            var ny = window.player_y + adj[a].dy;
+            var pass = !!window.Locations.isPassable(nx, ny);
+            if (!pass) {
+              var key = '' + nx + ',' + ny; var tile = window.locationsDict[key];
+              if (tile && typeof tile.x === 'number' && typeof tile.y === 'number') {
+                ctx2.save();
+                ctx2.lineWidth = Math.max(2, Math.floor(ss2 * 0.06));
+                ctx2.strokeStyle = 'rgba(231, 76, 60, 0.9)';
+                ctx2.setLineDash([Math.max(4, Math.floor(ss2*0.25)), Math.max(3, Math.floor(ss2*0.15))]);
+                ctx2.strokeRect(tile.x + 1, tile.y + 1, tile.width - 2, tile.height - 2);
+                ctx2.restore();
+              }
+            }
+          }
+        }
+      } catch(_) {}
+
       for (var j = 0; j < (window.players ? window.players.length : 0); j++) {
         var pl = window.players[j]; pl.newPos(dt);
         if (typeof window.isOnScreenRect === 'function' ? window.isOnScreenRect(pl.x, pl.y, pl.width, pl.height, window.ss) : true) { pl.update(); }

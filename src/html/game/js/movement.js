@@ -77,6 +77,26 @@
     if (dir === 'left') nx = nx - 1;
     if (dir === 'right') nx = nx + 1;
 
+    // Client-side guard: prevent stepping into clearly impassable tiles we already know about
+    try {
+      if (window.Locations && typeof window.Locations.isPassable === 'function') {
+        var passable = window.Locations.isPassable(nx, ny);
+        if (!passable) {
+          // restore move availability and emit a blocked event
+          window.canMove = true;
+          dispatch('move:complete', { result: 'blocked', x: window.player_x, y: window.player_y, nx: nx, ny: ny });
+          // subtle feedback: sound and optional floating text
+          try { if (typeof window.playSound === 'function') { window.playSound(window.getImageUrl('click.mp3')); } } catch(_) {}
+          try {
+            if (Array.isArray(window.__combatTexts) && window.player) {
+              window.__combatTexts.push({ text: 'Blocked', x: window.player.x + (window.ss/2), y: window.player.y - 8, color: '#e74c3c', size: 14, t0: performance.now(), life: 600, vy: 22, kind: 'normal' });
+            }
+          } catch(_) {}
+          return; // do not call server for obviously blocked tiles
+        }
+      }
+    } catch(_) {}
+
     $.ajax({
       url: 'gameServer.php',
       type: 'get',
@@ -151,6 +171,20 @@
             window.handleFightResponse(response, { fromMove: true });
           }
         } else {
+          // Distinguish server-side blocked from generic error
+          if (Array.isArray(response) && response[0] === 'err' && response[1] === 'blocked') {
+            window.canMove = true;
+            dispatch('move:complete', { result: 'blocked', x: window.player_x, y: window.player_y, nx: nx, ny: ny });
+            try { if (typeof window.playSound === 'function') { window.playSound(window.getImageUrl('click.mp3')); } } catch(_) {}
+            try {
+              if (Array.isArray(window.__combatTexts) && window.player) {
+                window.__combatTexts.push({ text: 'Blocked', x: window.player.x + (window.ss/2), y: window.player.y - 8, color: '#e74c3c', size: 14, t0: performance.now(), life: 600, vy: 22, kind: 'normal' });
+              }
+            } catch(_) {}
+            maybeFlushBuffer();
+            return;
+          }
+
           window.canMove = true; dispatch('move:complete', { result: 'err' });
           try {
             if (response && response[1] === 'rate_limited') {

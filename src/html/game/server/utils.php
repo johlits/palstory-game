@@ -165,6 +165,33 @@ function verifyLocationStats($locationStats)
   return $locationStats . ";";
 }
 
+// Server-side passability helper: returns true if tile is passable
+// Interprets flags present in either game-level stats (gstats) or resource-level stats:
+// - walk=0 => not passable
+// - passable=0 => not passable
+// - blocked=1 => not passable
+// - impassable=1 => not passable
+function isLocationPassable($gstats, $stats)
+{
+  $gs = strval($gstats);
+  $rs = strval($stats);
+  $all = verifyLocationStats($gs) . verifyLocationStats($rs);
+  $parts = explode(';', $all);
+  $walk = null; $passable = null; $blocked = null; $impassable = null;
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    if (str_starts_with($p, 'walk=')) { $walk = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'passable=')) { $passable = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'blocked=')) { $blocked = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'impassable=')) { $impassable = intval(explode('=', $p)[1]); }
+  }
+  if ($walk === 0) return false;
+  if ($passable === 0) return false;
+  if ($blocked === 1) return false;
+  if ($impassable === 1) return false;
+  return true;
+}
+
 // Heartbeat helper: update player's last_seen timestamp for auto-save/session tracking
 function touchPlayer($db, $room_id, $player_name)
 {

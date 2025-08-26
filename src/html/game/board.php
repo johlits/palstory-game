@@ -151,6 +151,7 @@
           <li>B - Toggle monster stats</li>
           <li>N - Toggle monster battle log</li>
           <li>M - Attack</li>
+          <li>O - Options</li>
           <li>H - Toggle help</li>
         </ul>
       </div>
@@ -185,12 +186,7 @@
       <span class="is-dark"><span id="player_bx"></span> <span id="player_by"></span></span>
     </a>
     <span id="audioBtns" style="margin-left:8px; display:inline-flex; gap:6px; vertical-align:middle;">
-      <button id="sfxOffBtn" type="button" class="nes-btn is-error" title="Disable SFX" onclick="AudioCtl.getSfx(0)">🔇</button>
-      <button id="sfxOnBtn" type="button" class="nes-btn is-success hidden" title="Enable SFX" onclick="AudioCtl.getSfx(1)">🔊</button>
-      <button id="t2sOffBtn" type="button" class="nes-btn is-error hidden" title="Disable Text-to-Speech" onclick="AudioCtl.getT2s(0)">🔕</button>
-      <button id="t2sOnBtn" type="button" class="nes-btn is-success" title="Enable Text-to-Speech" onclick="AudioCtl.getT2s(1)">🗣️</button>
-      <button id="bgmOffBtn" type="button" class="nes-btn is-error hidden" title="Disable BGM" onclick="AudioCtl.getMusic(0)">⏹️</button>
-      <button id="bgmOnBtn" type="button" class="nes-btn is-success" title="Enable BGM" onclick="AudioCtl.getMusic(1)">🎵</button>
+      <button id="optionsBtn" type="button" class="nes-btn" title="Options (O)" onclick="if(window.UI&&typeof UI.openOptions==='function'){UI.openOptions();}">Options</button>
     </span>
     <div class="statusbar_outer"><div class="statusbar_text">HP: <span id="player_hp"></span>/<span id="player_maxhp"></span></div><progress id="player_hp_progress" class="nes-progress is-success statusbar" value="100" max="100"></progress></div>
     <div class="statusbar_outer"><div class="statusbar_text">MP: <span id="player_mp"></span>/<span id="player_maxmp"></span></div><progress id="player_mp_progress" class="nes-progress is-primary statusbar" value="0" max="0"></progress></div>

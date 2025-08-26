@@ -39,7 +39,9 @@
     // Pause/resume idle players polling on tab visibility changes
     document.addEventListener('visibilitychange', function () {
       var isMoving = (typeof window.player !== 'undefined' && window.player && window.player.moving) ||
-                     (typeof window.anythingMoving === 'function' ? window.anythingMoving() : false);
+                     ((window.Engine && typeof window.Engine.anythingMoving === 'function')
+                        ? window.Engine.anythingMoving()
+                        : (typeof window.anythingMoving === 'function' ? window.anythingMoving() : false));
       if (typeof window.manageIdlePlayersRefresh === 'function') window.manageIdlePlayersRefresh(isMoving);
 
       // Opportunistic heartbeat when the tab becomes visible
@@ -92,7 +94,10 @@
     window.gc.height = Math.floor(window.h * dpr);
 
     // Re-apply DPR scaling to 2D context if available
-    if (window.myGameArea && window.myGameArea.context) {
+    if (window.Engine && window.Engine.myGameArea && window.Engine.myGameArea.context) {
+      window.Engine.myGameArea.context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    } else if (window.myGameArea && window.myGameArea.context) {
+      // Legacy fallback
       window.myGameArea.context.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 

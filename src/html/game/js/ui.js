@@ -276,16 +276,39 @@
         return { row: row, cb: cb };
       }
 
+      // Section: Accessibility
+      var accHeader = document.createElement('div');
+      accHeader.textContent = 'Accessibility';
+      accHeader.style.marginTop = '6px';
+      accHeader.style.fontWeight = '600';
+      accHeader.style.opacity = '0.9';
+      modal.appendChild(accHeader);
+
       // Show blocked tiles
-      var blockedRow = makeRow('Show blocked tiles', function(){
+      var blockedRow = makeRow('🧱 Show blocked tiles', function(){
         return (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
       }, function(checked){
         window.showBlockedOverlay = !!checked;
         try { localStorage.setItem('ps_showBlockedOverlay', window.showBlockedOverlay ? 'true' : 'false'); } catch(_) {}
       });
 
+      // divider
+      var div1 = document.createElement('div');
+      div1.style.height = '1px';
+      div1.style.background = 'rgba(255,255,255,0.08)';
+      div1.style.margin = '8px 0 4px 0';
+      modal.appendChild(div1);
+
+      // Section: Audio
+      var audioHeader = document.createElement('div');
+      audioHeader.textContent = 'Audio';
+      audioHeader.style.marginTop = '10px';
+      audioHeader.style.fontWeight = '600';
+      audioHeader.style.opacity = '0.9';
+      modal.appendChild(audioHeader);
+
       // Audio: SFX
-      var sfxRow = makeRow('Sound effects (SFX)', function(){
+      var sfxRow = makeRow('🔊 Sound effects (SFX)', function(){
         var pref = null; try { pref = localStorage.getItem('palstory-sfx'); } catch(_) {}
         if (pref === '0') return false;
         if (pref === '1') return true;
@@ -295,7 +318,7 @@
       });
 
       // Audio: BGM
-      var bgmRow = makeRow('Background music (BGM)', function(){
+      var bgmRow = makeRow('🎵 Background music (BGM)', function(){
         var pref = null; try { pref = localStorage.getItem('palstory-bgm'); } catch(_) {}
         if (pref === '1') return true;
         if (pref === '0') return false;
@@ -303,14 +326,53 @@
       }, function(checked){
         if (window.AudioCtl && typeof window.AudioCtl.getMusic === 'function') window.AudioCtl.getMusic(checked ? 1 : 0);
         if (checked && window.AudioCtl && typeof window.AudioCtl.setupBgmUnlockOnce === 'function') window.AudioCtl.setupBgmUnlockOnce();
+        // Re-apply preferred volume shortly after starting BGM
+        try {
+          var volPref = parseFloat(localStorage.getItem('palstory-bgm-vol'));
+          if (isNaN(volPref)) volPref = 1;
+          setTimeout(function(){ try { var el = document.getElementById('bgm'); if (el) el.volume = Math.min(1, Math.max(0, volPref)); } catch(_) {} }, 500);
+        } catch(_) {}
       });
 
       // Audio: TTS
-      var ttsRow = makeRow('Text-to-speech (TTS)', function(){
+      var ttsRow = makeRow('🗣️ Text-to-speech (TTS)', function(){
         return (typeof window.t2s === 'number') ? (window.t2s === 1) : true;
       }, function(checked){
         if (window.AudioCtl && typeof window.AudioCtl.getT2s === 'function') window.AudioCtl.getT2s(checked ? 1 : 0);
       });
+
+      // Audio: BGM Volume slider
+      var volRow = document.createElement('div');
+      volRow.style.display = 'flex';
+      volRow.style.alignItems = 'center';
+      volRow.style.gap = '8px';
+      volRow.style.margin = '6px 0';
+      var volLabel = document.createElement('span'); volLabel.textContent = '🔈 BGM volume';
+      var volInput = document.createElement('input');
+      volInput.type = 'range'; volInput.min = '0'; volInput.max = '100'; volInput.step = '1';
+      volInput.style.flex = '1';
+      var volPct = document.createElement('span'); volPct.style.minWidth = '32px'; volPct.style.textAlign = 'right';
+      function getVolPref(){ var v = parseFloat(localStorage.getItem('palstory-bgm-vol')); return isNaN(v) ? 1 : Math.min(1, Math.max(0, v)); }
+      function setElVolumeFromPref(){ try { var el = document.getElementById('bgm'); if (el) el.volume = getVolPref(); } catch(_) {} }
+      try { var initVol = getVolPref(); volInput.value = String(Math.round(initVol*100)); volPct.textContent = Math.round(initVol*100)+'%'; } catch(_) { volInput.value = '100'; volPct.textContent = '100%'; }
+      volInput.addEventListener('input', function(){
+        var v = Math.min(100, Math.max(0, parseInt(volInput.value||'0', 10)));
+        volPct.textContent = v + '%';
+      });
+      volInput.addEventListener('change', function(){
+        var v = Math.min(100, Math.max(0, parseInt(volInput.value||'0', 10)))/100;
+        try { localStorage.setItem('palstory-bgm-vol', String(v)); } catch(_) {}
+        setElVolumeFromPref();
+      });
+      volRow.appendChild(volLabel); volRow.appendChild(volInput); volRow.appendChild(volPct);
+      modal.appendChild(volRow);
+
+      // divider before actions
+      var div2 = document.createElement('div');
+      div2.style.height = '1px';
+      div2.style.background = 'rgba(255,255,255,0.08)';
+      div2.style.margin = '8px 0 8px 0';
+      modal.appendChild(div2);
 
       var actions = document.createElement('div');
       actions.style.display = 'flex';
@@ -338,6 +400,8 @@
           if (bgmPref === '1') bgmRow.cb.checked = true; else if (bgmPref === '0') bgmRow.cb.checked = false; else bgmRow.cb.checked = (typeof window.bgm === 'number') ? (window.bgm === 1) : false;
         } catch(_) { bgmRow.cb.checked = (typeof window.bgm === 'number') ? (window.bgm === 1) : false; }
         ttsRow.cb.checked = (typeof window.t2s === 'number') ? (window.t2s === 1) : true;
+        // refresh volume view and apply to element
+        try { var v = getVolPref(); volInput.value = String(Math.round(v*100)); volPct.textContent = Math.round(v*100)+'%'; setElVolumeFromPref(); } catch(_) {}
         backdrop.style.display = 'block';
         modal.style.display = 'block';
       }
@@ -389,6 +453,18 @@
 
   // On initial load, hide move buttons by default
   try { window.UI.resetMoveButtons(); } catch(_) {}
+
+  // First-run onboarding hint: show where Options live
+  (function onboardingHint(){
+    try {
+      var flag = localStorage.getItem('ps_onboarding_v1');
+      if (!flag && window.UI && typeof window.UI.setHelpOverlayVisible === 'function') {
+        window.UI.setHelpOverlayVisible(true, 'Press O for Options', 'Configure audio, TTS, and overlays');
+        setTimeout(function(){ try { window.UI.setHelpOverlayVisible(false); } catch(_) {} }, 5000);
+        localStorage.setItem('ps_onboarding_v1', '1');
+      }
+    } catch(_) {}
+  })();
 
   // Initialize panel visibility (closed by default) to avoid auto-showing siblings
   (function initIndependentToggles(){

@@ -64,6 +64,11 @@
               s.setAttribute('controls', 'loop');
               s.style.display = 'none';
               document.body.appendChild(s);
+              // Apply preferred volume if stored
+              try {
+                var v = parseFloat(localStorage.getItem('palstory-bgm-vol'));
+                if (!isNaN(v)) s.volume = Math.min(1, Math.max(0, v));
+              } catch (_) {}
               if (s.play) { var p = s.play(); if (p && p.catch) p.catch(function(){}); }
             }
           })

@@ -17,6 +17,12 @@ $DB_SERVER = env_val('DB_SERVER');
 $DB_USERNAME = env_val('DB_USERNAME');
 $DB_PASSWORD = env_val('DB_PASSWORD');
 $DB_NAME = env_val('DB_NAME');
+// Optional port (some platforms expose MySQL on a non-standard port)
+$DB_PORT = env_val('DB_PORT');
+if ($DB_PORT) {
+    // mysqli_connect accepts host in the form host:port
+    $DB_SERVER = $DB_SERVER . ':' . $DB_PORT;
+}
 
 if (!$DB_SERVER || !$DB_USERNAME || !$DB_NAME) {
     http_response_code(500);

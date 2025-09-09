@@ -1,11 +1,4 @@
-<?php
-// If ?admin is not present, redirect to /game/
-if (!isset($_GET['admin'])) {
-    // Use absolute path; adjust to '/game' if you prefer no trailing slash
-    header('Location: /story/game/');
-    exit;
-}
-?>
+<?php // Show admin page by default; no redirect ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,7 +24,7 @@ if (!isset($_GET['admin'])) {
     <li><a href="admin_logs.php">View Logs</a></li>
     <li><a href="migration_runner.php">Run Migrations</a></li>
     <li><a href="health.php">Health Check</a></li>
-    <li><a href="/story/game/">Go to Game</a></li>
+    <li><a href="/game/">Go to Game</a></li>
   </ul>
 </body>
 </html>

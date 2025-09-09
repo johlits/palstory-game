@@ -3,14 +3,35 @@
 $IMAGE_BASE_URL = "https://palplanner.com/story/uploads/";
 $NEWS_URL = "https://palplanner.com/story/news/index.php";
 
-$db = mysqli_connect(
-    $_ENV["DB_SERVER"],
-    $_ENV["DB_USERNAME"],
-    $_ENV["DB_PASSWORD"],
-    $_ENV["DB_NAME"]
-);
+// Helper to read environment variables reliably in Apache/PHP
+function env_val($key, $default = null) {
+    $v = getenv($key);
+    if ($v === false) {
+        $v = $_ENV[$key] ?? $_SERVER[$key] ?? null;
+    }
+    return ($v === null || $v === '') ? $default : $v;
+}
+
+// Read DB configuration from environment
+$DB_SERVER = env_val('DB_SERVER');
+$DB_USERNAME = env_val('DB_USERNAME');
+$DB_PASSWORD = env_val('DB_PASSWORD');
+$DB_NAME = env_val('DB_NAME');
+
+if (!$DB_SERVER || !$DB_USERNAME || !$DB_NAME) {
+    http_response_code(500);
+    echo "<h1>Configuration error</h1>";
+    echo "<p>Missing database environment variables. Please set: <code>DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME</code>.</p>";
+    echo "<p>For local testing with Docker: run the container with <code>-e DB_SERVER=... -e DB_USERNAME=... -e DB_PASSWORD=... -e DB_NAME=...</code>.</p>";
+    exit;
+}
+
+$db = @mysqli_connect($DB_SERVER, $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
 if (!$db) {
-    die('Database connection failed');
+    http_response_code(500);
+    echo "<h1>Database connection failed</h1>";
+    echo "<p>Could not connect to MySQL at <code>" . htmlspecialchars($DB_SERVER) . "</code> for database <code>" . htmlspecialchars($DB_NAME) . "</code>.</p>";
+    exit;
 }
 
 function clean($str) {
@@ -30,11 +51,11 @@ function getImageUrl($imagePath) {
 }
 
 function admin_game() {
-    return $_ENV["ADMIN_GAME"];
+    return env_val("ADMIN_GAME", "admin_game");
 }
 
 function super_admin_game() {
-    return $_ENV["SUPER_ADMIN_GAME"];
+    return env_val("SUPER_ADMIN_GAME", "super_admin_game");
 }
 
 /**

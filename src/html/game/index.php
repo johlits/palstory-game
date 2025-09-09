@@ -107,7 +107,9 @@ FROM resources_locations");
 
 </html>
 
-<script src="js/vendor/jquery-2.2.4.min.js"></script>
+<!-- jQuery via CDN with local fallback -->
+<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-2.2.4.min.js"><\\/script>')</script>
 <script>
   function login() {
     window.location = "/game/board.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();

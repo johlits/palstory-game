@@ -201,6 +201,40 @@
     } catch (_) {}
   })();
 
+  // Toast helper for quick on-screen notifications
+  (function setupToast(){
+    try {
+      if (document.getElementById('ps-toast')) return;
+      var el = document.createElement('div');
+      el.id = 'ps-toast';
+      el.style.position = 'fixed';
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+      el.style.bottom = '12%';
+      el.style.padding = '8px 12px';
+      el.style.background = 'rgba(0,0,0,0.70)';
+      el.style.color = '#fff';
+      el.style.fontSize = '14px';
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 6px 20px rgba(0,0,0,0.45)';
+      el.style.zIndex = '100002';
+      el.style.pointerEvents = 'none';
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      var hideTimer = null;
+      function toast(msg){
+        try {
+          el.textContent = msg;
+          el.style.display = 'block';
+          if (hideTimer) clearTimeout(hideTimer);
+          hideTimer = setTimeout(function(){ el.style.display = 'none'; }, 1600);
+        } catch(_) {}
+      }
+      window.UI = window.UI || {};
+      window.UI.toast = toast;
+    } catch(_) {}
+  })();
+
   // Blocked reason tooltip (lightweight)
   (function setupBlockedTooltip(){
     try {
@@ -420,6 +454,32 @@
       window.UI = window.UI || {};
       window.UI.openOptions = openOptions;
       window.UI.closeOptions = closeOptions;
+    } catch(_) {}
+  })();
+
+  // Global keybindings: 'O' opens Options; Shift+B toggles blocked overlay
+  (function setupGlobalHotkeys(){
+    try {
+      if (window.__hotkeysSetup) return; window.__hotkeysSetup = true;
+      document.addEventListener('keydown', function(e){
+        var key = e.key || '';
+        // Open Options (ignore if typing into an input/textarea)
+        var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+        var typing = (tag === 'input' || tag === 'textarea' || e.target.isContentEditable === true);
+        if (!typing && (key === 'o' || key === 'O')) {
+          if (window.UI && typeof window.UI.openOptions === 'function') { window.UI.openOptions(); e.preventDefault(); }
+          return;
+        }
+        // Toggle blocked overlay with Shift+B
+        if (!typing && e.shiftKey && (key === 'b' || key === 'B')) {
+          var val = (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
+          val = !val;
+          window.showBlockedOverlay = val;
+          try { localStorage.setItem('ps_showBlockedOverlay', val ? 'true' : 'false'); } catch(_) {}
+          try { if (window.UI && typeof window.UI.toast === 'function') window.UI.toast('Blocked overlay: ' + (val ? 'ON' : 'OFF')); } catch(_) {}
+          e.preventDefault();
+        }
+      });
     } catch(_) {}
   })();
 

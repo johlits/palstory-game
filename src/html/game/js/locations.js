@@ -55,6 +55,13 @@
               try { landscape.gstats = response[0].gstats || ""; } catch(_) { landscape.gstats = ""; }
               locationsDict[key] = landscape;
             }
+          })
+          .catch(function (err) {
+            console.error("error: " + err);
+          });
+      }
+    });
+  }
 
   // Return a short human-readable reason string if tile is blocked; otherwise null
   function getBlockReason(x, y) {
@@ -71,13 +78,6 @@
       if (/(^|;)impassable=1(;|$)/.test(st)) return 'Impassable';
       return null;
     } catch(_) { return null; }
-  }
-          })
-          .catch(function (err) {
-            console.error("error: " + err);
-          });
-      }
-    });
   }
 
   // Basic passability check using per-tile stats

@@ -1,7 +1,17 @@
 // Items module: handles fetching and rendering the player's items list
-// Exposes: window.Items.getItems()
+// Exposes: window.Items.getItems(), window.Items.getRarityInfo()
 (function () {
   if (!window.Items) window.Items = {};
+
+  // Rarity definitions: 0=common, 1=uncommon, 2=rare, 3=epic, 4=legendary
+  var RARITY_NAMES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
+  var RARITY_COLORS = ['#9e9e9e', '#4caf50', '#2196f3', '#9c27b0', '#ff9800'];
+
+  function getRarityInfo(rarity) {
+    var r = parseInt(rarity) || 0;
+    if (r < 0 || r >= RARITY_NAMES.length) r = 0;
+    return { name: RARITY_NAMES[r], color: RARITY_COLORS[r] };
+  }
 
   function getItems() {
     try {
@@ -36,6 +46,8 @@
                 var itemDescription = item.description || '';
                 var itemImage = item.image || '';
                 var equipped = parseInt(item.equipped) === 1;
+                var itemRarity = parseInt(item.rarity) || 0;
+                var rarityInfo = getRarityInfo(itemRarity);
 
                 var itemAtk = 0, itemDef = 0, itemSpd = 0, itemEvd = 0, itemType = '';
                 var fields = itemStatsStr.split(";");
@@ -60,13 +72,14 @@
                   image: itemImage,
                   stats: itemStatsStr,
                   description: itemDescription,
-                  equipped: equipped
+                  equipped: equipped,
+                  rarity: itemRarity
                 };
 
                 var rowHtml = '' +
                   '<tr>' +
                     '<td>' + (itemImage ? ('<img src="' + window.getImageUrl(itemImage) + '" alt="" width="32" height="32"/>') : '') + '</td>' +
-                    '<td>' + itemName + '</td>' +
+                    '<td><span style="color: ' + rarityInfo.color + '; font-weight: 600;">' + itemName + '</span></td>' +
                     '<td>' + itemAtk + '</td>' +
                     '<td>' + itemDef + '</td>' +
                     '<td>' + itemSpd + '</td>' +
@@ -137,4 +150,5 @@
   }
 
   window.Items.getItems = getItems;
+  window.Items.getRarityInfo = getRarityInfo;
 })();

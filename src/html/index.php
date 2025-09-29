@@ -1,4 +1,7 @@
-<?php // Show admin page by default; no redirect ?>
+<?php 
+// Show admin page by default; no redirect
+require_once __DIR__ . '/game/config.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,12 +22,12 @@
   <div class="note">You’re seeing this page because the <code>?admin</code> parameter is present.</div>
 
   <ul>
-    <li><a href="admin.html">Admin Dashboard (HTML)</a></li>
-    <li><a href="admin_players.php">Manage Players</a></li>
-    <li><a href="admin_logs.php">View Logs</a></li>
-    <li><a href="migration_runner.php">Run Migrations</a></li>
-    <li><a href="health.php">Health Check</a></li>
-    <li><a href="/game/">Go to Game</a></li>
+    <li><a href="<?= base_path('/admin.html') ?>">Admin Dashboard (HTML)</a></li>
+    <li><a href="<?= base_path('/admin_players.php') ?>">Manage Players</a></li>
+    <li><a href="<?= base_path('/admin_logs.php') ?>">View Logs</a></li>
+    <li><a href="<?= base_path('/migration_runner.php') ?>">Run Migrations</a></li>
+    <li><a href="<?= base_path('/health.php') ?>">Health Check</a></li>
+    <li><a href="<?= base_path('/game/') ?>">Go to Game</a></li>
   </ul>
 </body>
 </html>

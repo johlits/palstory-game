@@ -1,12 +1,9 @@
 <?
 session_start();
+require_once "./config.php";
 ?>
 <!DOCTYPE html>
 <html>
-
-<head>
-  <title>PalStory - Credits</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="manifest" href="assets/manifest.json" />
 
@@ -35,7 +32,7 @@ session_start();
       <ul>
         <li>Developed by Johan Litsfeldt (<a href="https://www.johlits.com" target="_blank">johlits</a>)</li>
       </ul>
-      <a class="ylink" href="/story/game/">Go back</a>
+      <a class="ylink" href="<?= base_path('/game/') ?>">Go back</a>
     </div>
   </div>
 

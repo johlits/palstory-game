@@ -30,17 +30,16 @@ require_once "./config.php";
 if (isset($_POST["logout"]) && !empty($_POST['logout'])) {
   $_SESSION['secret'] = '';
 }
-else if (isset($_POST["secret"]) && !empty($_POST['secret'])) {
   $_SESSION['secret'] = $_POST["secret"];
 }
 
 if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SESSION['secret'] != super_admin_game())) {
 ?>
 <div class="create-header">
-  <div><a href="/story/game/">Home</a></div>
+  <div><a href="<?= base_path('/game/') ?>">Home</a></div>
 </div>
 <div class="center-abs box">
-<form action="/story/game/create.php" method="post">
+<form action="<?= base_path('/game/create.php') ?>" method="post">
   <label for="secret">Password:</label><br>
   <input type="password" id="secret" name="secret" value="" autofocus><br/><br/>
   <input type="submit" value="Submit">
@@ -51,9 +50,9 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
 ?>
 
   <div class="create-header">
-    <div><b><a href="/story/game/">Home</a></b></div>
+    <div><b><a href="<?= base_path('/game/') ?>">Home</a></b></div>
     <div>
-      <form name="logoutForm" action="/story/game/create.php" method="post">
+      <form name="logoutForm" action="<?= base_path('/game/create.php') ?>" method="post">
         <input class="hidden" type="password" id="logout" name="logout" value="1">
         <a href="javascript:document.forms['logoutForm'].submit()">Log out</a>
       </form>
@@ -187,7 +186,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           //Output findings
           for ($i = 0; $i < count($results_array); $i++) {
             if ($i > 1) {
-              echo '<tr><td><a href="/story/uploads/' . $results_array[$i] . '" target="_blank">View</a></td><td>' . $results_array[$i] . '</td></tr>';
+              echo '<tr><td><a href="' . getImageUrl($results_array[$i]) . '" target="_blank">View</a></td><td>' . $results_array[$i] . '</td></tr>';
             }
           }
           ?>
@@ -217,7 +216,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   <td>
                     <? echo $row[1]; ?>
                   </td>
-                  <td><a href="/story/uploads/<? echo $row[2]; ?>" target="_blank">View</a></td>
+                  <td><a href="<?= getImageUrl($row[2]) ?>" target="_blank">View</a></td>
                   <td>
                     <div title="<? echo $row[3]; ?>"><? echo substr($row[3], 0, 10) . "..."; ?></div>
                   </td>
@@ -253,11 +252,6 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <tr>
             <th>Name</th>
             <th>Image</th>
-            <th>Description</th>
-            <th>Stats</th>
-            <th>Banned</th>
-          </tr>
-          <?php
           $selectstmt = $db->prepare("SELECT * FROM resources_monsters");
           $arr = array();
           if ($selectstmt->execute()) {
@@ -270,7 +264,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   <td>
                     <? echo $row[1]; ?>
                   </td>
-                  <td><a href="/story/uploads/<? echo $row[2]; ?>" target="_blank">View</a></td>
+                  <td><a href="<?= getImageUrl($row[2]) ?>" target="_blank">View</a></td>
                   <td>
                     <div title="<? echo $row[3]; ?>"><? echo substr($row[3], 0, 10) . "..."; ?></div>
                   </td>
@@ -287,11 +281,6 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                     <? } ?>
                   </td>
                 </tr>
-              <?
-              }
-            }
-          }
-          $selectstmt->close();
           ?>
         </table>
 
@@ -317,7 +306,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   <td>
                     <? echo $row[1]; ?>
                   </td>
-                  <td><a href="/story/uploads/<? echo $row[2]; ?>" target="_blank">View</a></td>
+                  <td><a href="<?= getImageUrl($row[2]) ?>" target="_blank">View</a></td>
                   <td>
                     <div title="<? echo $row[3]; ?>"><? echo substr($row[3], 0, 10) . "..."; ?></div>
                   </td>

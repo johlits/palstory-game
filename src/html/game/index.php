@@ -55,8 +55,8 @@ FROM resources_locations");
   <!-- Header -->
   <header class="p-header p-panel">
     <nav class="p-nav">
-      <a class="p-link" href="/game/create.php">Admin</a>
-      <a class="p-link" href="/game/credits.html">Credits</a>
+      <a class="p-link" href="<?= base_path('/game/create.php') ?>">Admin</a>
+      <a class="p-link" href="<?= base_path('/game/credits.html') ?>">Credits</a>
     </nav>
     <?php $headerItems = fetch_header_items(); ?>
     <div class="p-header-center" id="header_center">
@@ -97,7 +97,7 @@ FROM resources_locations");
 
       <div class="p-actions">
         <button id="login_btn" class="p-btn" onclick="login()">Play</button>
-        <a class="p-demo" href="/game/board.php?room=room<? echo rand(0,999); ?>&player=user<? echo rand(0,999); ?>">Try a demo room</a>
+        <a class="p-demo" href="<?= base_path('/game/board.php') ?>?room=room<? echo rand(0,999); ?>&player=user<? echo rand(0,999); ?>">Try a demo room</a>
       </div>
     </div>
   </div>
@@ -111,8 +111,9 @@ FROM resources_locations");
 <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
 <script>window.jQuery || document.write('<script src="js/vendor/jquery-2.2.4.min.js"><\\/script>')</script>
 <script>
+  var BASE_PATH = <?= json_encode(base_path('')) ?>;
   function login() {
-    window.location = "/game/board.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();
+    window.location = BASE_PATH + "/game/board.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();
   }
 
   document.getElementById("room_name").addEventListener("keypress", function (event) {

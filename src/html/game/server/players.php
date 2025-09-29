@@ -124,7 +124,7 @@ function getItems($db, $data)
   $player_id = intval(clean($data['get_items']));
   $room_id = intval(clean($data['room_id']));
 
-  $ss = $db->prepare("SELECT gi.id, gi.stats, gi.equipped, ri.name, ri.image, ri.description 
+  $ss = $db->prepare("SELECT gi.id, gi.stats, gi.equipped, ri.name, ri.image, ri.description, ri.rarity 
 				FROM game_items gi INNER JOIN resources_items ri ON gi.resource_id = ri.id 
 				WHERE gi.room_id = ? AND gi.owner_id = ?");
   $ss->bind_param("ii", $room_id, $player_id);

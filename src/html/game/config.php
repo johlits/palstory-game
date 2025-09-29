@@ -48,6 +48,23 @@ function strip($str) {
     return strip_tags($str);
 }
 
+// Base path helper for URL generation (e.g., "/story" for private servers, "" for public)
+// Set via putenv("BASE_PATH=/story") in config or environment
+function base_path($path = '') {
+    $base = env_val('BASE_PATH', '');
+    // Ensure base starts with / if not empty
+    if ($base && $base[0] !== '/') {
+        $base = '/' . $base;
+    }
+    // Remove trailing slash from base
+    $base = rtrim($base, '/');
+    // Ensure path starts with / if not empty
+    if ($path && $path[0] !== '/') {
+        $path = '/' . $path;
+    }
+    return $base . $path;
+}
+
 function getImageUrl($imagePath) {
     global $IMAGE_BASE_URL;
     // Remove leading slashes and "uploads/" prefix if present

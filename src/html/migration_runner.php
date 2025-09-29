@@ -11,29 +11,31 @@ function respond($status, $data = []) {
     exit;
 }
 
-// Security: require token
-$envToken = getenv('MIGRATE_TOKEN');
-if (!$envToken) {
-    respond('error', ['message' => 'MIGRATE_TOKEN not configured in environment']);
-}
-$reqToken = isset($_GET['token']) ? $_GET['token'] : '';
-if (!hash_equals($envToken, $reqToken)) {
-    respond('error', ['message' => 'Unauthorized']);
+// If config.php exists, include it to override (prefer story/game location for app files)
+// config.php can also call putenv("MIGRATE_TOKEN=...") to set the token
+foreach ([__DIR__ . '/game/config.php', __DIR__ . '/config.php'] as $cfg) {
+    if (file_exists($cfg)) {
+        // config.php should define $DB_SERVER, $DB_USERNAME, $DB_PASSWORD, $DB_NAME
+        // and optionally call putenv("MIGRATE_TOKEN=password") for private servers
+        include $cfg;
+        break;
+    }
 }
 
-// Load DB config
+// Load DB config and allow config.php to set MIGRATE_TOKEN via putenv()
 $DB_SERVER = getenv('DB_SERVER') ?: 'localhost';
 $DB_USERNAME = getenv('DB_USERNAME') ?: 'root';
 $DB_PASSWORD = getenv('DB_PASSWORD') ?: '';
 $DB_NAME = getenv('DB_NAME') ?: 'story';
 
-// If config.php exists, include it to override (prefer story/game location for app files)
-foreach ([__DIR__ . '/story/game/config.php', __DIR__ . '/config.php'] as $cfg) {
-    if (file_exists($cfg)) {
-        // config.php should define $DB_SERVER, $DB_USERNAME, $DB_PASSWORD, $DB_NAME
-        include $cfg;
-        break;
-    }
+// Security: require token (check after config is loaded so putenv() works)
+$envToken = getenv('MIGRATE_TOKEN');
+if (!$envToken) {
+    respond('error', ['message' => 'MIGRATE_TOKEN not configured in environment or config.php']);
+}
+$reqToken = isset($_GET['token']) ? $_GET['token'] : '';
+if (!hash_equals($envToken, $reqToken)) {
+    respond('error', ['message' => 'Unauthorized']);
 }
 
 try {

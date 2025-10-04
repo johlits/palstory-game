@@ -178,7 +178,11 @@
 
   function createPlayerUIFlow() {
     _playClick();
-    try { $("#create_player_box").hide(); } catch(_){}
+    console.log('Hiding create_player_box...');
+    try { 
+      $("#create_player_box").hide();
+      $("#create_player_box").addClass('hidden');
+    } catch(_){}
     var name = $("#player_name").val();
     try { console.log('name is '); } catch(_){}
     $("#player").text(name);

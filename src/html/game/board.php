@@ -100,6 +100,10 @@
     /* When menus are active, gracefully fade out the canvas to showcase bg */
     body.menu-active #gc { opacity: 0; }
     body.menu-active #bg-stars { opacity: 1; }
+    
+    /* Hide menu backgrounds when game is active */
+    body:not(.menu-active) #bg-anim { display: none; }
+    body:not(.menu-active) #bg-stars { display: none; }
   </style>
 
 </head>
@@ -487,9 +491,13 @@
     function updateMenuState() {
       var menuVisible = boxes.some(function (el) {
         if (!el) return false;
-        return !el.classList.contains('hidden');
+        var isVisible = !el.classList.contains('hidden');
+        console.log('Box', el.id, 'visible:', isVisible);
+        return isVisible;
       });
+      console.log('Menu visible:', menuVisible, '- Setting menu-active to:', menuVisible);
       body.classList.toggle('menu-active', menuVisible);
+      console.log('Body classes:', body.className);
     }
 
     // Observe class changes on the boxes to auto-toggle

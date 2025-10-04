@@ -332,7 +332,32 @@
 
   // Start game orchestration (moved from game.js)
   function startGame() {
+    // Prevent double-start
+    if (window.gameStarted) {
+      console.log('Game already started, skipping...');
+      return;
+    }
+    window.gameStarted = true;
+    
     try { console.log('starting game..'); } catch(_){}
+    
+    // Hide menu background and show game canvas
+    try {
+      console.log('Removing menu-active class from body...');
+      document.body.classList.remove('menu-active');
+      var bgAnim = document.getElementById('bg-anim');
+      if (bgAnim) bgAnim.style.display = 'none';
+      var bgStars = document.getElementById('bg-stars');
+      if (bgStars) bgStars.style.display = 'none';
+      var gameCanvas = document.getElementById('gc');
+      if (gameCanvas) {
+        gameCanvas.style.display = 'block';
+        gameCanvas.style.opacity = '1';
+      }
+    } catch(e) {
+      console.error('Error hiding menu background:', e);
+    }
+    
     // Show items box
     try {
       if (window.UI && typeof window.UI.showEl === 'function') window.UI.showEl('#items_box');

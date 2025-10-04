@@ -3,16 +3,38 @@
 -- Tier 1: Level 1, Tier 2: Level 10, Tier 3: Level 20, Tier 4: Level 30, Tier 5: Level 40
 START TRANSACTION;
 
--- Add tier and required_base_job columns to resources_jobs
-ALTER TABLE resources_jobs 
-ADD COLUMN tier INT NOT NULL DEFAULT 1 COMMENT 'Job tier: 1=base, 2=advanced, 3=expert, 4=master, 5=legendary' AFTER min_level,
-ADD COLUMN required_base_job VARCHAR(32) DEFAULT NULL COMMENT 'Required base job for advancement (NULL for tier 1)' AFTER tier;
+-- Add tier and required_base_job columns to resources_jobs (idempotent)
+SET @tier_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'resources_jobs' 
+                    AND COLUMN_NAME = 'tier');
+
+SET @sql_tier = IF(@tier_exists = 0, 
+                   'ALTER TABLE resources_jobs ADD COLUMN tier INT NOT NULL DEFAULT 1 COMMENT ''Job tier: 1=base, 2=advanced, 3=expert, 4=master, 5=legendary'' AFTER min_level',
+                   'SELECT ''Column tier already exists'' AS message');
+
+PREPARE stmt FROM @sql_tier;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @req_job_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                       WHERE TABLE_SCHEMA = DATABASE() 
+                       AND TABLE_NAME = 'resources_jobs' 
+                       AND COLUMN_NAME = 'required_base_job');
+
+SET @sql_req = IF(@req_job_exists = 0, 
+                  'ALTER TABLE resources_jobs ADD COLUMN required_base_job VARCHAR(32) DEFAULT NULL COMMENT ''Required base job for advancement (NULL for tier 1)'' AFTER tier',
+                  'SELECT ''Column required_base_job already exists'' AS message');
+
+PREPARE stmt FROM @sql_req;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Update existing jobs to tier 1
 UPDATE resources_jobs SET tier = 1, required_base_job = NULL WHERE tier = 1;
 
 -- Insert Tier 2 jobs (Level 10)
-INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
+INSERT IGNORE INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
 -- Warrior -> Knight or Berserker
 ('knight', 'Knight', 'Noble defender with exceptional DEF and HP. Protects allies with unwavering resolve.', '+DEF +HP +ATK', 10, 2, 'warrior'),
 ('berserker', 'Berserker', 'Raging warrior with devastating ATK. Sacrifices defense for overwhelming offense.', '+ATK +ATK +SPD', 10, 2, 'warrior'),
@@ -38,7 +60,7 @@ INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level
 ('trapper', 'Trapper', 'Cunning trapper with high ATK and DEF. Sets deadly ambushes.', '+ATK +DEF +SPD', 10, 2, 'hunter');
 
 -- Insert Tier 3 jobs (Level 20)
-INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
+INSERT IGNORE INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
 -- Knight -> Crusader
 ('crusader', 'Crusader', 'Holy crusader with divine protection. Unbreakable defender of the faith.', '+DEF +HP +ATK +MP', 20, 3, 'warrior'),
 -- Berserker -> Warlord
@@ -70,7 +92,7 @@ INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level
 ('saboteur', 'Saboteur', 'Master of traps and ambush. Controls the battlefield with cunning.', '+ATK +DEF +SPD +CRT', 20, 3, 'hunter');
 
 -- Insert Tier 4 jobs (Level 30)
-INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
+INSERT IGNORE INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
 -- Crusader -> Divine Champion
 ('divine_champion', 'Divine Champion', 'Chosen of the gods with divine power. Unstoppable holy warrior.', '+DEF +HP +ATK +MP +CRT', 30, 4, 'warrior'),
 -- Warlord -> Conqueror
@@ -102,7 +124,7 @@ INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level
 ('strategist', 'Strategist', 'Master tactician who controls every battle. Perfect planning and execution.', '+ATK +DEF +SPD +CRT +HP', 30, 4, 'hunter');
 
 -- Insert Tier 5 jobs (Level 40 - Legendary)
-INSERT INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
+INSERT IGNORE INTO resources_jobs (job_id, name, description, stat_modifiers, min_level, tier, required_base_job) VALUES
 -- Divine Champion -> Godslayer
 ('godslayer', 'Godslayer', 'Legendary warrior who slays even gods. Unmatched in all combat.', '+DEF +HP +ATK +MP +CRT +SPD', 40, 5, 'warrior'),
 -- Conqueror -> Warbringer

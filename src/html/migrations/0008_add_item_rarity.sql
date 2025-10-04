@@ -4,9 +4,19 @@
 START TRANSACTION;
 
 -- Add rarity column with default value of 0 (common)
-ALTER TABLE resources_items 
-ADD COLUMN IF NOT EXISTS rarity TINYINT(1) NOT NULL DEFAULT 0 
-COMMENT 'Item rarity: 0=common, 1=uncommon, 2=rare, 3=epic, 4=legendary';
+-- Check if column exists first, skip if already exists
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'resources_items' 
+                   AND COLUMN_NAME = 'rarity');
+
+SET @sql = IF(@col_exists = 0, 
+              'ALTER TABLE resources_items ADD COLUMN rarity TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''Item rarity: 0=common, 1=uncommon, 2=rare, 3=epic, 4=legendary''',
+              'SELECT ''Column rarity already exists'' AS message');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Update existing items with appropriate rarities
 UPDATE resources_items SET rarity = 0 WHERE name = 'Wooden Sword';

@@ -269,6 +269,8 @@
 <div>
 <button type="button" class="nes-btn" onclick="UI.toggleItemsTable()">Items</button>
 <button type="button" class="nes-btn" onclick="UI.toggleSkills()">Skills</button>
+<button type="button" class="nes-btn" onclick="UI.toggleSkillTree()">Skill Tree</button>
+<button type="button" class="nes-btn" onclick="UI.toggleJobSelection()">Job</button>
 <button id="items_description_btn" type="button" class="nes-btn hidden" onclick="UI.toggleItemsDescription()">Close description</button>
 <!-- <button type="button" class="nes-btn" onclick="toggleItemsStats()">Stats</button> -->
 </div>
@@ -289,6 +291,36 @@
         <span id="skill_status_power_strike" class="nes-text is-disabled" style="align-self:center;"></span>
         <span id="skill_status_fireball" class="nes-text is-disabled hidden" style="align-self:center;"></span>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="skill_tree_box" class="hidden" style="margin-top:8px;">
+  <div class="shadow">
+    <span class="nes-text is-warning">Skill Tree</span>
+    <div style="margin-top:6px;">
+      <span class="nes-text is-disabled">Skill Points: <span id="skill_points_display">0</span></span>
+    </div>
+    <div id="skill_tree_content" style="margin-top:8px;">
+      <!-- Skill tree will be populated by JavaScript -->
+    </div>
+    <div style="margin-top:8px;">
+      <button type="button" class="nes-btn" onclick="UI.toggleSkillTree()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="job_selection_box" class="hidden" style="margin-top:8px;">
+  <div class="shadow">
+    <span class="nes-text is-warning">Job Selection</span>
+    <div id="current_job_display" style="margin-top:6px;">
+      <span class="nes-text is-disabled">Current Job: <span id="player_job_name">None</span></span>
+    </div>
+    <div id="job_selection_content" style="margin-top:8px;">
+      <!-- Job selection will be populated by JavaScript -->
+    </div>
+    <div style="margin-top:8px;">
+      <button type="button" class="nes-btn" onclick="UI.toggleJobSelection()">Close</button>
     </div>
   </div>
 </div>
@@ -436,6 +468,8 @@
 <script src="js/movement.js"></script>
 <script src="js/monsters.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/skilltree.js"></script>
+<script src="js/jobselection.js"></script>
 <script src="js/fog.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/app.js"></script>

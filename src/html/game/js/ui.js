@@ -939,4 +939,38 @@
   function stopSkillInfoAutorefresh(){
     try { if (window.__skillInfoTimer) { clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; } } catch(_) {}
   }
+
+  // Toggle skill tree panel
+  window.UI.toggleSkillTree = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var $box = $("#skill_tree_box");
+    if (!$box.length) return;
+    if ($box.hasClass('hidden')) {
+      showEl('#skill_tree_box');
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skill_tree_box'); } catch(_) {}
+      // Populate skill tree
+      if (window.SkillTree && typeof window.SkillTree.refresh === 'function') {
+        window.SkillTree.refresh();
+      }
+    } else {
+      hideEl('#skill_tree_box');
+    }
+  };
+
+  // Toggle job selection panel
+  window.UI.toggleJobSelection = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var $box = $("#job_selection_box");
+    if (!$box.length) return;
+    if ($box.hasClass('hidden')) {
+      showEl('#job_selection_box');
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#job_selection_box'); } catch(_) {}
+      // Populate job selection
+      if (window.JobSelection && typeof window.JobSelection.refresh === 'function') {
+        window.JobSelection.refresh();
+      }
+    } else {
+      hideEl('#job_selection_box');
+    }
+  };
 })();

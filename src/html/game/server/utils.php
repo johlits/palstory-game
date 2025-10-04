@@ -140,7 +140,7 @@ function parseMonsterStats($stats)
   return $truestats;
 }
 
-function setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold)
+function setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold, $crt = 5, $skill_points = 0, $job = 'none', $unlocked_skills = '')
 {
   return "lvl=" . $lvl . 
          ";exp=" . $exp . 
@@ -152,6 +152,10 @@ function setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, 
          ";def=" . $def . 
          ";spd=" . $spd . 
          ";evd=" . $evd . 
+         ";crt=" . $crt . 
+         ";skill_points=" . $skill_points . 
+         ";job=" . $job . 
+         ";unlocked_skills=" . $unlocked_skills . 
          ";gold=" . $gold . ";";
 }
 

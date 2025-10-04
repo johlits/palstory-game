@@ -13,6 +13,7 @@ require_once __DIR__ . '/server/locations.php';
 require_once __DIR__ . '/server/monsters.php';
 require_once __DIR__ . '/server/movement.php';
 require_once __DIR__ . '/server/combat.php';
+require_once __DIR__ . '/server/skills.php';
 
 // API
 
@@ -72,6 +73,14 @@ if (isset($data['get_room'])) {
     }
   } catch (Throwable $_) { }
   echo json_encode(["ok"]);
+} else if (isset($data['select_job'])) {
+  echo json_encode(selectJob($db, $data));
+} else if (isset($data['unlock_skill'])) {
+  echo json_encode(unlockSkill($db, $data));
+} else if (isset($data['get_jobs'])) {
+  echo json_encode(getJobs($db));
+} else if (isset($data['get_skills'])) {
+  echo json_encode(getSkills($db));
 }
 
 mysqli_close($db);

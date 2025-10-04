@@ -200,7 +200,7 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
         try {
           $stats_str = isset($row["stats"]) ? strval($row["stats"]) : '';
           if ($stats_str !== '') {
-            $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$gold=0;
+            $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$crt=5;$gold=0;$skill_points=0;$job='none';$unlocked_skills='';
             $parts = explode(';', $stats_str);
             foreach ($parts as $p) {
               if ($p === '') continue;
@@ -214,12 +214,16 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
               else if (str_starts_with($p, 'def=')) { $def = intval(explode('=', $p)[1]); }
               else if (str_starts_with($p, 'spd=')) { $spd = intval(explode('=', $p)[1]); }
               else if (str_starts_with($p, 'evd=')) { $evd = intval(explode('=', $p)[1]); }
+              else if (str_starts_with($p, 'crt=')) { $crt = intval(explode('=', $p)[1]); }
               else if (str_starts_with($p, 'gold=')) { $gold = intval(explode('=', $p)[1]); }
+              else if (str_starts_with($p, 'skill_points=')) { $skill_points = intval(explode('=', $p)[1]); }
+              else if (str_starts_with($p, 'job=')) { $job = explode('=', $p)[1]; }
+              else if (str_starts_with($p, 'unlocked_skills=')) { $unlocked_skills = explode('=', $p)[1]; }
             }
             // Only regen if maxmp > 0
             if ($maxmp > 0 && $mp < $maxmp) {
               $mp = min($maxmp, $mp + 1);
-              $new_stats = setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold);
+              $new_stats = setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold, $crt, $skill_points, $job, $unlocked_skills);
               $up = $db->prepare("UPDATE game_players SET stats = ? WHERE name = ? AND room_id = ?");
               if ($up) {
                 $up->bind_param("ssi", $new_stats, $player_name, $room_id);

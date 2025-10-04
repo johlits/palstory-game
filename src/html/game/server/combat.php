@@ -34,11 +34,28 @@ function fightMonster($db, $data, $itemDropRate)
   if (isset($data['skill'])) {
     $requested_skill = strtolower(trim(strval($data['skill'])));
   }
-  // Whitelist and config for skills (can be moved to DB/JSON later)
-  $skill_defs = array(
-    'power_strike' => array('mp_cost' => 5, 'mult' => 1.5, 'cd_sec' => 5),
-    'fireball' => array('mp_cost' => 7, 'mult' => 1.6, 'cd_sec' => 6)
-  );
+  // Load skill definitions from database
+  $skill_defs = array();
+  try {
+    $skill_query = $db->prepare("SELECT skill_id, mp_cost, damage_multiplier, cooldown_sec FROM resources_skills WHERE banned = 0");
+    if ($skill_query && $skill_query->execute()) {
+      $skill_result = $skill_query->get_result();
+      while ($skill_row = mysqli_fetch_array($skill_result)) {
+        $skill_defs[$skill_row['skill_id']] = array(
+          'mp_cost' => intval($skill_row['mp_cost']),
+          'mult' => floatval($skill_row['damage_multiplier']),
+          'cd_sec' => intval($skill_row['cooldown_sec'])
+        );
+      }
+      $skill_query->close();
+    }
+  } catch (Throwable $_) {
+    // Fallback to basic skills if DB read fails
+    $skill_defs = array(
+      'power_strike' => array('mp_cost' => 5, 'mult' => 1.5, 'cd_sec' => 5),
+      'fireball' => array('mp_cost' => 7, 'mult' => 1.6, 'cd_sec' => 6)
+    );
+  }
 
   $sp = $db->prepare("SELECT * 
 				FROM game_players 
@@ -68,11 +85,15 @@ function fightMonster($db, $data, $itemDropRate)
       $player_def = 0;
       $player_spd = 1;
       $player_evd = 0;
+      $player_crt = 5; // base 5% crit chance
       $player_hp = 10;
       $player_maxhp = 10;
       $player_mp = 0;
       $player_maxmp = 0;
       $player_gold = 0;
+      $player_skill_points = 0;
+      $player_job = 'none';
+      $player_unlocked_skills = '';
 
       $player_stats_parts = explode(';', $player_stats);
       $cooldowns = array(); // preserve and mutate cd_* keys from player stats
@@ -95,6 +116,9 @@ function fightMonster($db, $data, $itemDropRate)
         if (str_starts_with($player_stats_parts[$i], "evd=")) {
           $player_evd = intval(explode('=', $player_stats_parts[$i])[1]);
         }
+        if (str_starts_with($player_stats_parts[$i], "crt=")) {
+          $player_crt = intval(explode('=', $player_stats_parts[$i])[1]);
+        }
         if (str_starts_with($player_stats_parts[$i], "hp=")) {
           $player_hp = intval(explode('=', $player_stats_parts[$i])[1]);
         }
@@ -110,6 +134,15 @@ function fightMonster($db, $data, $itemDropRate)
         if (str_starts_with($player_stats_parts[$i], "gold=")) {
           $player_gold = intval(explode('=', $player_stats_parts[$i])[1]);
         }
+        if (str_starts_with($player_stats_parts[$i], "skill_points=")) {
+          $player_skill_points = intval(explode('=', $player_stats_parts[$i])[1]);
+        }
+        if (str_starts_with($player_stats_parts[$i], "job=")) {
+          $player_job = explode('=', $player_stats_parts[$i])[1];
+        }
+        if (str_starts_with($player_stats_parts[$i], "unlocked_skills=")) {
+          $player_unlocked_skills = explode('=', $player_stats_parts[$i])[1];
+        }
         // Capture cooldown keys like cd_power_strike=epoch_seconds;
         if (str_starts_with($player_stats_parts[$i], "cd_")) {
           $kv = explode('=', $player_stats_parts[$i]);
@@ -123,6 +156,7 @@ function fightMonster($db, $data, $itemDropRate)
       $itemDef = 0;
       $itemSpd = 0;
       $itemEvd = 0;
+      $itemCrt = 0;
 
       $se = $db->prepare("SELECT * 
 				FROM game_items WHERE owner_id = ? AND equipped = 1");
@@ -145,6 +179,9 @@ function fightMonster($db, $data, $itemDropRate)
               }
               if (str_starts_with($item_stats_parts[$i], "evd=")) {
                 $itemEvd += intval(explode('=', $item_stats_parts[$i])[1]);
+              }
+              if (str_starts_with($item_stats_parts[$i], "crt=")) {
+                $itemCrt += intval(explode('=', $item_stats_parts[$i])[1]);
               }
             }
           }
@@ -191,6 +228,7 @@ function fightMonster($db, $data, $itemDropRate)
           $monster_def = 0;
           $monster_spd = 1;
           $monster_evd = 0;
+          $monster_crt = 5; // base 5% crit chance
           $monster_hp = 1;
           $monster_maxhp = 1;
           $monster_drops = '';
@@ -210,6 +248,9 @@ function fightMonster($db, $data, $itemDropRate)
             }
             if (str_starts_with($monster_stats_parts[$i], "evd=")) {
               $monster_evd = intval(explode('=', $monster_stats_parts[$i])[1]);
+            }
+            if (str_starts_with($monster_stats_parts[$i], "crt=")) {
+              $monster_crt = intval(explode('=', $monster_stats_parts[$i])[1]);
             }
             if (str_starts_with($monster_stats_parts[$i], "hp=")) {
               $monster_hp = intval(explode('=', $monster_stats_parts[$i])[1]);
@@ -304,16 +345,23 @@ function fightMonster($db, $data, $itemDropRate)
                 $player_force = $using_skill ? intval(round($base_force * $skill_multiplier)) : $base_force;
                 $monster_force = $monster_def + rand(0, $monster_def);
                 $hit = max(0, $player_force - $monster_force);
+                // Critical hit check
+                $is_crit = false;
+                $total_crit = min(95, $player_crt + $itemCrt); // cap at 95%
+                if (rand(1, 100) <= $total_crit) {
+                  $is_crit = true;
+                  $hit = intval(round($hit * 2.0)); // 2x damage on crit
+                }
                 $monster_hp = $monster_hp - $hit;
                 $playerDamageDealt += $hit;
-                $result["events"][] = array("t" => "player_hit", "dmg" => $hit, "crit" => false, "monster_hp" => max(0, $monster_hp));
-                $result["log"][] = $player_name . " hits for " . $hit . " damage.";
+                $result["events"][] = array("t" => "player_hit", "dmg" => $hit, "crit" => $is_crit, "monster_hp" => max(0, $monster_hp));
+                $result["log"][] = $player_name . ($is_crit ? " crits for " : " hits for ") . $hit . " damage" . ($is_crit ? "!" : ".");
 
                 // Persist MP change immediately if we used a skill and combat continues
                 if ($using_skill && $monster_hp > 0) {
                   try {
                     $upx = $db->prepare("UPDATE game_players SET stats = ? WHERE id = ?");
-                    $player_stats_strx = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold);
+                    $player_stats_strx = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold, $player_crt, $player_skill_points, $player_job, $player_unlocked_skills);
                     // Append cooldowns to stats string so they persist
                     foreach ($cooldowns as $k => $v) { $player_stats_strx .= $k . "=" . intval($v) . ";"; }
                     $upx->bind_param("si", $player_stats_strx, $player_id);
@@ -406,13 +454,16 @@ function fightMonster($db, $data, $itemDropRate)
                     if ($player_maxmp <= 0) { $player_maxmp = 50; }
                     $player_maxmp += 5 + intval($player_maxmp * 0.01);
                     $player_mp = $player_maxmp;
+                    // Award 1 skill point per level
+                    $player_skill_points += 1;
                     $result["rewards"]["leveledUp"] = true;
                     $result["rewards"]["newLevel"] = $player_lvl;
+                    $result["rewards"]["skillPoints"] = 1;
                   }
 
                   // update player stats
                   $up = $db->prepare("UPDATE game_players SET stats = ? WHERE id = ?");
-                  $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold);
+                  $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold, $player_crt, $player_skill_points, $player_job, $player_unlocked_skills);
                   foreach ($cooldowns as $k => $v) { $player_stats_str .= $k . "=" . intval($v) . ";"; }
                   $up->bind_param("si", $player_stats_str, $player_id);
                   $up->execute();
@@ -490,10 +541,16 @@ function fightMonster($db, $data, $itemDropRate)
                 $monster_force = $monster_atk + rand(0, $monster_atk);
                 $player_force = ($player_def + $itemDef) + rand(0, ($player_def + $itemDef));
                 $hit = max(0, $monster_force - $player_force);
+                // Monster critical hit check
+                $is_monster_crit = false;
+                if (rand(1, 100) <= min(95, $monster_crt)) {
+                  $is_monster_crit = true;
+                  $hit = intval(round($hit * 2.0)); // 2x damage on crit
+                }
                 $player_hp = $player_hp - $hit;
                 $monsterDamageDealt += $hit;
-                $result["events"][] = array("t" => "monster_hit", "dmg" => $hit, "crit" => false, "player_hp" => max(0, $player_hp));
-                $result["log"][] = $monster_name . " hits for " . $hit . " damage.";
+                $result["events"][] = array("t" => "monster_hit", "dmg" => $hit, "crit" => $is_monster_crit, "player_hp" => max(0, $player_hp));
+                $result["log"][] = $monster_name . ($is_monster_crit ? " crits for " : " hits for ") . $hit . " damage" . ($is_monster_crit ? "!" : ".");
                 if ($player_hp <= 0) {
 
                   $result["events"][] = array("t" => "player_died", "name" => $player_name);
@@ -507,7 +564,7 @@ function fightMonster($db, $data, $itemDropRate)
 
                   // update player stats
                   $up = $db->prepare("UPDATE game_players SET stats = ?, x = ?, y = ? WHERE id = ?");
-                  $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold);
+                  $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold, $player_crt, $player_skill_points, $player_job, $player_unlocked_skills);
                   foreach ($cooldowns as $k => $v) { $player_stats_str .= $k . "=" . intval($v) . ";"; }
                   $up->bind_param("siii", $player_stats_str, $reset_player_x, $reset_player_y, $player_id);
                   $up->execute();
@@ -547,7 +604,7 @@ function fightMonster($db, $data, $itemDropRate)
                 } else {
                   // update player stats
                   $up = $db->prepare("UPDATE game_players SET stats = ? WHERE id = ?");
-                  $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold);
+                  $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold, $player_crt, $player_skill_points, $player_job, $player_unlocked_skills);
                   // Append cooldowns to ensure persistence across ongoing rounds
                   foreach ($cooldowns as $k => $v) { $player_stats_str .= $k . "=" . intval($v) . ";"; }
                   $up->bind_param("si", $player_stats_str, $player_id);

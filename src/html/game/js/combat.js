@@ -330,11 +330,27 @@
     window.handleFightResponse = handleFightResponse;
   }
 
+  function useSkillFromPanel() {
+    try {
+      if (window.UsableSkills && typeof UsableSkills.getCurrentSkillId === 'function') {
+        var skillId = UsableSkills.getCurrentSkillId();
+        if (skillId) {
+          useSkill(skillId);
+        }
+      }
+    } catch (e) {
+      console.error('useSkillFromPanel error:', e);
+    }
+  }
+
   if (!window.Combat) window.Combat = {};
   if (typeof window.Combat.attack !== 'function') {
     window.Combat.attack = attack;
   }
   if (typeof window.Combat.useSkill !== 'function') {
     window.Combat.useSkill = useSkill;
+  }
+  if (typeof window.Combat.useSkillFromPanel !== 'function') {
+    window.Combat.useSkillFromPanel = useSkillFromPanel;
   }
 })();

@@ -688,7 +688,14 @@
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     var $box = $("#skills_box");
     if (!$box.length) return;
-    if ($box.hasClass('hidden')) { showEl('#skills_box'); try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skills_box'); } catch(_) {} }
+    if ($box.hasClass('hidden')) { 
+      showEl('#skills_box'); 
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skills_box'); } catch(_) {}
+      // Refresh usable skills when opening
+      if (window.UsableSkills && typeof UsableSkills.refresh === 'function') {
+        UsableSkills.refresh();
+      }
+    }
     else { hideEl('#skills_box'); }
   };
 
@@ -756,6 +763,10 @@
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     hideEl('#skill_info_box');
     try { stopSkillInfoAutorefresh(); } catch(_) {}
+    // Also call UsableSkills module if available
+    if (window.UsableSkills && typeof UsableSkills.hideSkillInfo === 'function') {
+      UsableSkills.hideSkillInfo();
+    }
   };
 
   window.UI.toggleItemsDescription = function () {

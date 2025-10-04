@@ -290,7 +290,19 @@
         try { if (window.Items && typeof window.Items.getItems === 'function') window.Items.getItems(); } catch(_){}
 
         if (initGame) {
-          try { if (typeof window.startGame === 'function') window.startGame(); } catch(_){}
+          console.log('initGame is true, calling startGame...');
+          try { 
+            if (typeof window.startGame === 'function') {
+              console.log('startGame function exists, calling it...');
+              window.startGame();
+            } else {
+              console.error('startGame function not found!');
+            }
+          } catch(e){
+            console.error('Error calling startGame:', e);
+          }
+        } else {
+          console.log('initGame is false, skipping startGame');
         }
       })
       .catch(function (err) {

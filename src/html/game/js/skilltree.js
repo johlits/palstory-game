@@ -18,25 +18,36 @@
         data: { get_skills: '1' },
         dataType: 'json',
         success: function(skills) {
+          console.log('Loaded skills from database:', skills);
           if (Array.isArray(skills)) {
             SKILLS = {};
             skills.forEach(function(s) {
               SKILLS[s.skill_id] = {
                 name: s.name,
                 desc: s.description,
-                cost: s.unlock_cost,
-                job: s.required_job,
                 mp: s.mp_cost,
                 cd: s.cooldown_sec,
-                mult: s.damage_multiplier
+                mult: s.damage_multiplier,
+                cost: s.unlock_cost,
+                job: s.required_job
               };
             });
+            console.log('Processed SKILLS:', SKILLS);
+          } else {
+            console.error('Skills is not an array:', skills);
           }
           // Get player stats to check skill points, job, and unlocked skills
           if (window.api && typeof window.api.getPlayer === 'function') {
             window.api.getPlayer(playerName, roomId).then(function(resp){
-              if (!resp || !resp.stats) return;
-              var stats = parsePlayerStats(resp.stats);
+              console.log('getPlayer response:', resp);
+              // getPlayer returns an array, get first element
+              var player = Array.isArray(resp) ? resp[0] : resp;
+              if (!player || !player.stats) {
+                console.error('No player or stats');
+                return;
+              }
+              var stats = parsePlayerStats(player.stats);
+              console.log('Parsed player stats:', stats);
               renderSkillTree(stats);
             }).catch(function(err){
               console.error('Failed to get player stats:', err);
@@ -78,40 +89,44 @@
 
     var html = '';
     
-    // Group skills by job
-    var jobGroups = {
-      'all': [],
-      'warrior': [],
-      'rogue': [],
-      'mage': [],
-      'cleric': [],
-      'ranger': []
-    };
-
+    // Filter skills: show universal + player's job skills only
+    var playerJob = stats.job || 'none';
+    console.log('Player job:', playerJob);
+    console.log('All SKILLS:', SKILLS);
+    var relevantSkills = [];
+    
     for (var skillId in SKILLS) {
       var skill = SKILLS[skillId];
-      jobGroups[skill.job].push({ id: skillId, data: skill });
+      console.log('Checking skill:', skillId, 'job:', skill.job, 'matches:', skill.job === 'all' || skill.job === playerJob);
+      // Show universal skills or skills matching player's job
+      if (skill.job === 'all' || skill.job === playerJob) {
+        relevantSkills.push({ id: skillId, data: skill, isUniversal: skill.job === 'all' });
+      }
     }
+    console.log('Relevant skills:', relevantSkills);
 
-    // Render universal skills first
-    if (jobGroups['all'].length > 0) {
-      html += '<div style="margin-bottom:12px;"><span class="nes-text is-primary">Universal Skills</span></div>';
-      jobGroups['all'].forEach(function(s){
-        html += renderSkillRow(s.id, s.data, stats);
-      });
-    }
-
-    // Render job-specific skills
-    var jobOrder = ['warrior', 'rogue', 'mage', 'cleric', 'ranger'];
-    jobOrder.forEach(function(job){
-      if (jobGroups[job].length > 0) {
-        var jobName = job.charAt(0).toUpperCase() + job.slice(1);
-        html += '<div style="margin-top:16px; margin-bottom:8px;"><span class="nes-text is-warning">' + jobName + ' Skills</span></div>';
-        jobGroups[job].forEach(function(s){
+    if (relevantSkills.length === 0) {
+      html += '<div class="nes-text is-disabled">Select a job to see available skills.</div>';
+    } else {
+      // Render universal skills first
+      var universalSkills = relevantSkills.filter(function(s){ return s.isUniversal; });
+      if (universalSkills.length > 0) {
+        html += '<div style="margin-bottom:12px;"><span class="nes-text is-primary">Universal Skills</span></div>';
+        universalSkills.forEach(function(s){
           html += renderSkillRow(s.id, s.data, stats);
         });
       }
-    });
+
+      // Render job-specific skills
+      var jobSkills = relevantSkills.filter(function(s){ return !s.isUniversal; });
+      if (jobSkills.length > 0) {
+        var jobName = playerJob.charAt(0).toUpperCase() + playerJob.slice(1);
+        html += '<div style="margin-top:16px; margin-bottom:8px;"><span class="nes-text is-warning">' + jobName + ' Skills</span></div>';
+        jobSkills.forEach(function(s){
+          html += renderSkillRow(s.id, s.data, stats);
+        });
+      }
+    }
 
     $content.html(html);
   }

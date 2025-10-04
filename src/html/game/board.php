@@ -276,20 +276,20 @@
 </div>
 
 <div id="skills_box" class="hidden" style="margin-top:8px;">
-  <span class="nes-text is-warning">Skills</span><br/>
-  <button id="powerStrikeMiniBtn" type="button" class="nes-btn is-primary" onclick="UI.showSkillInfo('power_strike')" title="Power Strike (MP 5, CD 5s)">PS</button>
-  <button id="fireballMiniBtn" type="button" class="nes-btn is-error" onclick="UI.showSkillInfo('fireball')" title="Fireball (MP 7, CD 6s)">FB</button>
+  <span class="nes-text is-warning">Usable Skills</span>
+  <div id="skills_buttons_container" style="margin-top:6px;">
+    <!-- Skill buttons will be populated dynamically -->
+    <span class="nes-text is-disabled">No skills unlocked yet.</span>
+  </div>
   <div id="skill_info_box" class="hidden" style="margin-top:8px;">
     <div class="shadow">
-      <span class="nes-text is-warning" id="skill_title">Power Strike</span>
-      <div id="skill_desc" class="justify" style="margin-top:6px;">A heavy attack that deals 150% damage. Costs 5 MP. Cooldown 5s.</div>
-      <div id="skill_meta" class="nes-text is-disabled" style="margin-top:6px;">Cost: 5 MP • Cooldown: 5s</div>
-      <div style="margin-top:8px; display:flex; gap:8px;">
-        <button id="skill_use_btn_power_strike" type="button" class="nes-btn is-success" onclick="Combat.useSkill('power_strike')" title="Use Power Strike">Use</button>
-        <button id="skill_use_btn_fireball" type="button" class="nes-btn is-success hidden" onclick="Combat.useSkill('fireball')" title="Use Fireball">Use</button>
+      <span class="nes-text is-warning" id="skill_title"></span>
+      <div id="skill_desc" class="justify" style="margin-top:6px;"></div>
+      <div id="skill_meta" class="nes-text is-disabled" style="margin-top:6px;"></div>
+      <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="skill_use_btn" type="button" class="nes-btn is-success" onclick="Combat.useSkillFromPanel()" title="Use Skill">Use</button>
         <button type="button" class="nes-btn" onclick="UI.hideSkillInfo()">Close</button>
-        <span id="skill_status_power_strike" class="nes-text is-disabled" style="align-self:center;"></span>
-        <span id="skill_status_fireball" class="nes-text is-disabled hidden" style="align-self:center;"></span>
+        <span id="skill_status" class="nes-text is-disabled" style="align-self:center;"></span>
       </div>
     </div>
   </div>
@@ -301,7 +301,7 @@
     <div style="margin-top:6px;">
       <span class="nes-text is-disabled">Skill Points: <span id="skill_points_display">0</span></span>
     </div>
-    <div id="skill_tree_content" style="margin-top:8px;">
+    <div id="skill_tree_content" style="margin-top:8px; max-height:60vh; overflow-y:auto; overflow-x:hidden;">
       <!-- Skill tree will be populated by JavaScript -->
     </div>
     <div style="margin-top:8px;">
@@ -316,7 +316,7 @@
     <div id="current_job_display" style="margin-top:6px;">
       <span class="nes-text is-disabled">Current Job: <span id="player_job_name">None</span></span>
     </div>
-    <div id="job_selection_content" style="margin-top:8px;">
+    <div id="job_selection_content" style="margin-top:8px; max-height:60vh; overflow-y:auto; overflow-x:hidden;">
       <!-- Job selection will be populated by JavaScript -->
     </div>
     <div style="margin-top:8px;">
@@ -470,6 +470,7 @@
 <script src="js/ui.js"></script>
 <script src="js/skilltree.js"></script>
 <script src="js/jobselection.js"></script>
+<script src="js/usableskills.js"></script>
 <script src="js/fog.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/app.js"></script>

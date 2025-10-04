@@ -19,8 +19,10 @@
         data: { get_jobs: '1' },
         dataType: 'json',
         success: function(jobs) {
+          console.log('Loaded jobs from database:', jobs);
           if (Array.isArray(jobs)) {
             JOBS = {};
+            var minLevel = 999;
             jobs.forEach(function(j) {
               JOBS[j.job_id] = {
                 name: j.name,
@@ -30,21 +32,36 @@
                 tier: j.tier,
                 required_base_job: j.required_base_job
               };
-              // Update required level to minimum from all jobs
-              if (j.min_level < REQUIRED_LEVEL || REQUIRED_LEVEL === 1) {
-                REQUIRED_LEVEL = j.min_level;
+              // Track minimum level from tier 1 jobs
+              if (j.tier === 1 && j.min_level < minLevel) {
+                minLevel = j.min_level;
               }
             });
+            REQUIRED_LEVEL = minLevel;
+            console.log('Processed JOBS object:', JOBS);
+            console.log('Set REQUIRED_LEVEL to:', REQUIRED_LEVEL);
+          } else {
+            console.error('Jobs is not an array:', jobs);
           }
           // Get player stats to check level and current job
           if (window.api && typeof window.api.getPlayer === 'function') {
+            console.log('Calling window.api.getPlayer...');
             window.api.getPlayer(playerName, roomId).then(function(resp){
-              if (!resp || !resp.stats) return;
-              var stats = parsePlayerStats(resp.stats);
+              console.log('getPlayer response:', resp);
+              // getPlayer returns an array, get first element
+              var player = Array.isArray(resp) ? resp[0] : resp;
+              if (!player || !player.stats) {
+                console.error('No player or stats from getPlayer');
+                return;
+              }
+              var stats = parsePlayerStats(player.stats);
+              console.log('Parsed stats:', stats);
               renderJobSelection(stats);
             }).catch(function(err){
               console.error('Failed to get player stats:', err);
             });
+          } else {
+            console.error('window.api.getPlayer not available');
           }
         },
         error: function() {
@@ -97,13 +114,22 @@
   }
 
   function renderJobSelection(stats) {
+    console.log('renderJobSelection called with stats:', stats);
+    console.log('Current JOBS:', JOBS);
     var $content = $('#job_selection_content');
-    if (!$content.length) return;
+    if (!$content.length) {
+      console.error('job_selection_content element not found');
+      return;
+    }
 
     var jobName = stats.job === 'none' ? 'None' : (JOBS[stats.job] ? JOBS[stats.job].name : stats.job);
     $('#player_job_name').text(jobName);
 
     var html = '';
+    
+    console.log('stats.job value:', stats.job, 'type:', typeof stats.job);
+    console.log('stats.job !== "none":', stats.job !== 'none');
+    console.log('stats.lvl:', stats.lvl, 'REQUIRED_LEVEL:', REQUIRED_LEVEL);
 
     if (stats.job !== 'none') {
       // Has a job - show current job and advancement options
@@ -157,8 +183,10 @@
       }
     }
     
+    console.log('Final HTML to render:', html);
     $content.html(html);
   }
+
   function selectJob(jobId) {
     try {
       if (!JOBS[jobId]) {

@@ -189,6 +189,16 @@ function fightMonster($db, $data, $itemDropRate)
       }
       $se->close();
 
+      // Apply passive skill bonuses
+      $passiveBonuses = getPassiveSkillBonuses($db, $player_unlocked_skills);
+      $passiveAtk = $passiveBonuses['atk'];
+      $passiveDef = $passiveBonuses['def'];
+      $passiveSpd = $passiveBonuses['spd'];
+      $passiveEvd = $passiveBonuses['evd'];
+      $passiveCrt = $passiveBonuses['crt'];
+      $passiveMaxHp = $passiveBonuses['maxhp'];
+      $passiveMaxMp = $passiveBonuses['maxmp'];
+
       $sm = $db->prepare("SELECT gm.id, gm.stats, rm.name, rm.id as resource_id, rm.mp as base_mp, rm.maxmp as base_maxmp  
 				FROM game_monsters gm INNER JOIN resources_monsters rm ON gm.resource_id = rm.id 
 				WHERE gm.room_id = ? AND gm.x = ? AND gm.y = ?");
@@ -309,12 +319,21 @@ function fightMonster($db, $data, $itemDropRate)
             }
           } catch (Throwable $_) { }
 
-          if ($player_evd + $itemEvd >= $monster_evd) {
+          // Calculate effective stats with items and passive skills
+          $effectiveAtk = $player_atk + $itemAtk + $passiveAtk;
+          $effectiveDef = $player_def + $itemDef + $passiveDef;
+          $effectiveSpd = $player_spd + $itemSpd + $passiveSpd;
+          $effectiveEvd = $player_evd + $itemEvd + $passiveEvd;
+          $effectiveCrt = $player_crt + $itemCrt + $passiveCrt;
+          $effectiveMaxHp = $player_maxhp + $passiveMaxHp;
+          $effectiveMaxMp = $player_maxmp + $passiveMaxMp;
+
+          if ($effectiveEvd >= $monster_evd) {
             $monster_dodge = 1;
-            $player_dodge = min(99, ($player_evd + $itemEvd) / $monster_evd);
+            $player_dodge = min(99, $effectiveEvd / $monster_evd);
           } else {
             $player_dodge = 1;
-            $monster_dodge = min(99, $monster_evd / ($player_evd + $itemEvd));
+            $monster_dodge = min(99, $monster_evd / $effectiveEvd);
           }
 
           // fight here
@@ -347,7 +366,7 @@ function fightMonster($db, $data, $itemDropRate)
               $skill_name = '';
             }
           }
-          for ($i = min(($player_spd + $itemSpd), $monster_spd); $i <= max(($player_spd + $itemSpd), $monster_spd); $i++) {
+          for ($i = min($effectiveSpd, $monster_spd); $i <= max($effectiveSpd, $monster_spd); $i++) {
             if ($i % $monster_spd == 0) {
 
               if (rand(0, 100) > $monster_dodge) {
@@ -381,13 +400,13 @@ function fightMonster($db, $data, $itemDropRate)
                   }
                 }
 
-                $base_force = ($player_atk + $itemAtk) + rand(0, ($player_atk + $itemAtk));
+                $base_force = $effectiveAtk + rand(0, $effectiveAtk);
                 $player_force = $using_skill ? intval(round($base_force * $skill_multiplier)) : $base_force;
                 $monster_force = $monster_def + rand(0, $monster_def);
                 $hit = max(0, $player_force - $monster_force);
                 // Critical hit check
                 $is_crit = false;
-                $total_crit = min(95, $player_crt + $itemCrt); // cap at 95%
+                $total_crit = min(95, $effectiveCrt); // cap at 95%
                 if (rand(1, 100) <= $total_crit) {
                   $is_crit = true;
                   $hit = intval(round($hit * 2.0)); // 2x damage on crit
@@ -579,7 +598,7 @@ function fightMonster($db, $data, $itemDropRate)
                 $result["log"][] = $player_name . " missed!";
               }
             }
-            if ($i % ($player_spd + $itemSpd) == 0) {
+            if ($i % $effectiveSpd == 0) {
 
               if (rand(0, 100) > $player_dodge) {
                 // monster attack
@@ -611,7 +630,7 @@ function fightMonster($db, $data, $itemDropRate)
                 
                 $base_monster_force = $monster_atk + rand(0, $monster_atk);
                 $monster_force = $monster_using_skill ? intval(round($base_monster_force * $monster_skill_mult)) : $base_monster_force;
-                $player_force = ($player_def + $itemDef) + rand(0, ($player_def + $itemDef));
+                $player_force = $effectiveDef + rand(0, $effectiveDef);
                 $hit = max(0, $monster_force - $player_force);
                 // Monster critical hit check
                 $is_monster_crit = false;

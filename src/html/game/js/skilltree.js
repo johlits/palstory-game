@@ -29,7 +29,9 @@
                 cd: s.cooldown_sec,
                 mult: s.damage_multiplier,
                 cost: s.unlock_cost,
-                job: s.required_job
+                job: s.required_job,
+                type: s.skill_type || 'active',
+                modifiers: s.stat_modifiers || null
               };
             });
             console.log('Processed SKILLS:', SKILLS);
@@ -140,11 +142,15 @@
     var statusClass = isUnlocked ? 'is-success' : (canUnlock && !wrongJob && !noJob ? 'is-primary' : 'is-disabled');
     var statusText = isUnlocked ? '✓ Unlocked' : (wrongJob ? '(Requires ' + skill.job + ')' : (noJob ? '(Select a job first)' : 'Cost: ' + skill.cost + ' SP'));
 
-    var html = '<div style="margin-bottom:8px; padding:8px; border:1px solid #ccc; border-radius:4px;">';
+    var isPassive = skill.type === 'passive';
+    var skillTypeLabel = isPassive ? '[PASSIVE]' : '';
+    var skillDetails = isPassive ? skill.desc : (skill.desc + ' (MP ' + skill.mp + ', CD ' + skill.cd + 's)');
+    
+    var html = '<div style="margin-bottom:8px; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:' + (isPassive ? '#f0f8ff' : '#fff') + ';">';
     html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
     html += '<div>';
-    html += '<span class="nes-text ' + statusClass + '">' + skill.name + '</span>';
-    html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-top:2px;">' + skill.desc + ' (MP ' + skill.mp + ', CD ' + skill.cd + 's)</div>';
+    html += '<span class="nes-text ' + statusClass + '">' + (isPassive ? '⚡ ' : '') + skill.name + ' ' + skillTypeLabel + '</span>';
+    html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-top:2px;">' + skillDetails + '</div>';
     html += '</div>';
     html += '<div>';
     if (isUnlocked) {

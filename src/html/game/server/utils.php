@@ -209,6 +209,69 @@ function touchPlayer($db, $room_id, $player_name)
   }
 }
 
+// Calculate passive skill bonuses for a player
+// Returns an associative array of stat bonuses: ['atk' => +5, 'def' => +3, ...]
+function getPassiveSkillBonuses($db, $unlocked_skills)
+{
+  $bonuses = array(
+    'atk' => 0, 'def' => 0, 'spd' => 0, 'evd' => 0, 'crt' => 0,
+    'maxhp' => 0, 'maxmp' => 0
+  );
+  
+  if (!$db || $unlocked_skills === '' || $unlocked_skills === null) {
+    return $bonuses;
+  }
+  
+  $unlocked_array = explode(',', $unlocked_skills);
+  if (count($unlocked_array) === 0) {
+    return $bonuses;
+  }
+  
+  try {
+    // Build safe IN clause for skill_id
+    $placeholders = implode(',', array_fill(0, count($unlocked_array), '?'));
+    $sql = "SELECT stat_modifiers FROM resources_skills WHERE skill_id IN ($placeholders) AND skill_type = 'passive' AND banned = 0";
+    $stmt = $db->prepare($sql);
+    
+    if ($stmt) {
+      // Bind all skill IDs dynamically
+      $types = str_repeat('s', count($unlocked_array));
+      $stmt->bind_param($types, ...$unlocked_array);
+      
+      if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+          $modifiers = $row['stat_modifiers'];
+          if ($modifiers !== null && $modifiers !== '') {
+            // Parse stat modifiers (e.g., "atk=+5;def=+3;maxhp=+10")
+            $parts = explode(';', $modifiers);
+            foreach ($parts as $part) {
+              if ($part === '') continue;
+              if (strpos($part, '=') !== false) {
+                list($stat, $value) = explode('=', $part, 2);
+                $stat = trim($stat);
+                $value = trim($value);
+                // Parse value (supports +5, -3, etc.)
+                if (preg_match('/^([+\-]?\d+)$/', $value, $matches)) {
+                  $num = intval($matches[1]);
+                  if (isset($bonuses[$stat])) {
+                    $bonuses[$stat] += $num;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      $stmt->close();
+    }
+  } catch (Throwable $_) {
+    // Return empty bonuses on error
+  }
+  
+  return $bonuses;
+}
+
 // Telemetry-based rate limit helper (best-effort)
 // Checks how many matching actions a player performed in a room within a window.
 // Returns an array: [ 'ok' => bool, 'count' => int, 'window_sec' => int, 'cutoff' => 'YYYY-mm-dd HH:ii:ss' ]

@@ -377,6 +377,7 @@ function fightMonster($db, $data, $itemDropRate)
                 // player attack
                 // Resolve skill if requested and resources allow (once per round)
                 $using_skill = false;
+                $synergy = array('triggered' => false, 'bonus' => '', 'synergy_skill' => ''); // Initialize synergy result
                 if (!$skill_used_this_round && $skill_name !== '' && $skill_multiplier > 1.0) {
                   if ($player_maxmp > 0 && $player_mp >= $skill_cost) {
                     $using_skill = true;
@@ -398,6 +399,16 @@ function fightMonster($db, $data, $itemDropRate)
                     } catch (Throwable $_) { }
                     $result["events"][] = array("t" => "skill_used", "name" => $skill_name, "mp_spent" => $skill_cost);
                     $result["log"][] = $player_name . " used " . ucfirst(str_replace('_',' ', $skill_name)) . " (-".$skill_cost." MP)!";
+                    
+                    // Check for skill synergy
+                    $synergy = checkSkillSynergy($db, $player_stats_str, $skill_name);
+                    if ($synergy['triggered']) {
+                      $result["events"][] = array("t" => "synergy", "skill" => $skill_name, "with" => $synergy['synergy_skill']);
+                      $result["log"][] = "⚡ SYNERGY! " . ucfirst(str_replace('_',' ', $synergy['synergy_skill'])) . " → " . ucfirst(str_replace('_',' ', $skill_name)) . "!";
+                    }
+                    
+                    // Track this skill usage for future synergies
+                    $player_stats_str = trackSkillUsage($player_stats_str, $skill_name);
                     
                     // Apply status effects for buff/debuff skills
                     $effect_applied = false;
@@ -432,6 +443,18 @@ function fightMonster($db, $data, $itemDropRate)
                 $player_force = $using_skill ? intval(round($base_force * $skill_multiplier)) : $base_force;
                 $monster_force = $monster_def + rand(0, $monster_def);
                 $hit = max(0, $player_force - $monster_force);
+                
+                // Apply synergy bonus if triggered
+                if ($using_skill && isset($synergy) && $synergy['triggered']) {
+                  $synergy_result = applySynergyBonus($synergy['bonus'], $hit, $effectiveCrt);
+                  $hit = $synergy_result['damage'];
+                  $effectiveCrt = $synergy_result['crit']; // Update crit chance for this attack
+                  if (isset($synergy_result['mp_restore'])) {
+                    $player_mp = min($effectiveMaxMp, $player_mp + $synergy_result['mp_restore']);
+                    $result["log"][] = "Synergy restored " . $synergy_result['mp_restore'] . " MP!";
+                  }
+                }
+                
                 // Critical hit check
                 $is_crit = false;
                 $total_crit = min(95, $effectiveCrt); // cap at 95%

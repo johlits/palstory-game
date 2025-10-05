@@ -1,4 +1,7 @@
 <?php
+// Suppress warnings to prevent breaking JSON responses
+error_reporting(E_ERROR | E_PARSE);
+
 header("Access-Control-Allow-Origin: *");
 header('Content-Type: application/json');
 

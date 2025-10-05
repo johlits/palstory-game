@@ -437,3 +437,168 @@ function telemetryRateLimitCheck($db, $room_id, $player_name, $actions, $window_
   } catch (Throwable $_) { /* ignore */ }
   return $out;
 }
+
+/**
+ * Track a skill usage in player's recent skill history
+ * Stores last 3 skills with timestamps in player stats as: last_skills=skill1:ts1,skill2:ts2,skill3:ts3
+ */
+function trackSkillUsage($stats_str, $skill_id) {
+  $now = time();
+  $parts = explode(';', $stats_str);
+  $last_skills = '';
+  $new_parts = array();
+  
+  // Find and parse existing last_skills
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    if (str_starts_with($p, 'last_skills=')) {
+      $last_skills = explode('=', $p, 2)[1];
+    } else {
+      $new_parts[] = $p;
+    }
+  }
+  
+  // Parse existing skills
+  $skill_history = array();
+  if ($last_skills !== '') {
+    $entries = explode(',', $last_skills);
+    foreach ($entries as $entry) {
+      if (strpos($entry, ':') !== false) {
+        list($sid, $ts) = explode(':', $entry, 2);
+        $skill_history[] = array('skill' => $sid, 'ts' => intval($ts));
+      }
+    }
+  }
+  
+  // Add new skill
+  $skill_history[] = array('skill' => $skill_id, 'ts' => $now);
+  
+  // Keep only last 3
+  $skill_history = array_slice($skill_history, -3);
+  
+  // Rebuild last_skills string
+  $entries = array();
+  foreach ($skill_history as $sh) {
+    $entries[] = $sh['skill'] . ':' . $sh['ts'];
+  }
+  $new_parts[] = 'last_skills=' . implode(',', $entries);
+  
+  return implode(';', $new_parts) . ';';
+}
+
+/**
+ * Check if a skill synergy is triggered
+ * Returns array with 'triggered' (bool) and 'bonus' (string) if synergy found
+ */
+function checkSkillSynergy($db, $stats_str, $skill_id) {
+  $result = array('triggered' => false, 'bonus' => '', 'synergy_skill' => '');
+  
+  try {
+    // Load skill synergy definition (gracefully handle if columns don't exist yet)
+    $synergy_query = $db->prepare("SELECT synergy_with, synergy_bonus, synergy_window_sec FROM resources_skills WHERE skill_id = ? AND synergy_with IS NOT NULL LIMIT 1");
+    if (!$synergy_query) return $result;
+    
+    $synergy_query->bind_param("s", $skill_id);
+    if (!@$synergy_query->execute()) {
+      @$synergy_query->close();
+      return $result;
+    }
+    
+    $synergy_result = $synergy_query->get_result();
+    if (mysqli_num_rows($synergy_result) === 0) {
+      $synergy_query->close();
+      return $result;
+    }
+    
+    $synergy_row = mysqli_fetch_array($synergy_result);
+    $required_skill = $synergy_row['synergy_with'];
+    $bonus = $synergy_row['synergy_bonus'];
+    $window_sec = intval($synergy_row['synergy_window_sec']);
+    $synergy_query->close();
+    
+    // Parse last_skills from player stats
+    $parts = explode(';', $stats_str);
+    $last_skills = '';
+    foreach ($parts as $p) {
+      if (str_starts_with($p, 'last_skills=')) {
+        $last_skills = explode('=', $p, 2)[1];
+        break;
+      }
+    }
+    
+    if ($last_skills === '') return $result;
+    
+    // Check if required skill was used within time window
+    $now = time();
+    $entries = explode(',', $last_skills);
+    foreach ($entries as $entry) {
+      if (strpos($entry, ':') !== false) {
+        list($sid, $ts) = explode(':', $entry, 2);
+        $ts = intval($ts);
+        if ($sid === $required_skill && ($now - $ts) <= $window_sec) {
+          $result['triggered'] = true;
+          $result['bonus'] = $bonus;
+          $result['synergy_skill'] = $required_skill;
+          break;
+        }
+      }
+    }
+  } catch (Throwable $_) { /* ignore */ }
+  
+  return $result;
+}
+
+/**
+ * Apply synergy bonus to combat calculations
+ * Parses bonus string (e.g., "damage=+50%;crit=+20%") and returns modified values
+ */
+function applySynergyBonus($bonus_str, $base_damage, $base_crit = 0) {
+  $result = array('damage' => $base_damage, 'crit' => $base_crit, 'effects' => array());
+  
+  if ($bonus_str === '') return $result;
+  
+  try {
+    $bonuses = explode(';', $bonus_str);
+    foreach ($bonuses as $b) {
+      if (strpos($b, '=') === false) continue;
+      list($key, $val) = explode('=', $b, 2);
+      $key = trim($key);
+      $val = trim($val);
+      
+      if ($key === 'damage') {
+        // Parse percentage or flat bonus
+        if (strpos($val, '%') !== false) {
+          $pct = floatval(str_replace('%', '', $val));
+          $result['damage'] = intval($base_damage * (1 + $pct / 100));
+        } else {
+          $result['damage'] = $base_damage + intval($val);
+        }
+      } elseif ($key === 'crit') {
+        // Crit chance bonus
+        if (strpos($val, '%') !== false) {
+          $pct = floatval(str_replace('%', '', $val));
+          $result['crit'] = $base_crit + $pct;
+        } else {
+          $result['crit'] = $base_crit + intval($val);
+        }
+      } elseif ($key === 'status') {
+        // Status effect to apply
+        $result['effects'][] = $val;
+      } elseif ($key === 'cooldown') {
+        // Cooldown reduction (stored for later)
+        $result['cooldown_reduction'] = intval($val);
+      } elseif ($key === 'mp_restore') {
+        // MP restoration
+        $result['mp_restore'] = intval($val);
+      } elseif ($key === 'healing') {
+        // Healing bonus (for healing skills)
+        if (strpos($val, '%') !== false) {
+          $pct = floatval(str_replace('%', '', $val));
+          $result['healing_mult'] = 1 + $pct / 100;
+        }
+      }
+    }
+  } catch (Throwable $_) { /* ignore */ }
+  
+  return $result;
+}

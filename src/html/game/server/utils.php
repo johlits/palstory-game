@@ -272,6 +272,131 @@ function getPassiveSkillBonuses($db, $unlocked_skills)
   return $bonuses;
 }
 
+// Status Effects Helpers
+
+// Parse active status effects from player stats string
+// Returns array of effects: ['effect_name' => expiry_timestamp, ...]
+function parseStatusEffects($stats_str) {
+  $effects = array();
+  if (!$stats_str) return $effects;
+  
+  $parts = explode(';', $stats_str);
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    if (str_starts_with($p, 'effect_')) {
+      $kv = explode('=', $p, 2);
+      if (count($kv) === 2) {
+        $effect_name = substr($kv[0], 7); // Remove 'effect_' prefix
+        $expiry = intval($kv[1]);
+        if ($expiry > time()) {
+          $effects[$effect_name] = $expiry;
+        }
+      }
+    }
+  }
+  return $effects;
+}
+
+// Add a status effect to player stats
+// Returns updated stats string
+function addStatusEffect($stats_str, $effect_name, $duration_sec) {
+  $expiry = time() + $duration_sec;
+  // Remove existing effect if present
+  $stats_str = removeStatusEffect($stats_str, $effect_name);
+  // Add new effect
+  return $stats_str . 'effect_' . $effect_name . '=' . $expiry . ';';
+}
+
+// Remove a status effect from player stats
+// Returns updated stats string
+function removeStatusEffect($stats_str, $effect_name) {
+  if (!$stats_str) return '';
+  
+  $parts = explode(';', $stats_str);
+  $new_parts = array();
+  $effect_key = 'effect_' . $effect_name;
+  
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    if (!str_starts_with($p, $effect_key . '=')) {
+      $new_parts[] = $p;
+    }
+  }
+  
+  return implode(';', $new_parts) . ';';
+}
+
+// Clean expired status effects from stats string
+// Returns updated stats string
+function cleanExpiredEffects($stats_str) {
+  if (!$stats_str) return '';
+  
+  $parts = explode(';', $stats_str);
+  $new_parts = array();
+  $now = time();
+  
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    if (str_starts_with($p, 'effect_')) {
+      $kv = explode('=', $p, 2);
+      if (count($kv) === 2) {
+        $expiry = intval($kv[1]);
+        if ($expiry > $now) {
+          $new_parts[] = $p; // Keep active effect
+        }
+        // Skip expired effects
+      }
+    } else {
+      $new_parts[] = $p; // Keep non-effect stats
+    }
+  }
+  
+  return implode(';', $new_parts) . ';';
+}
+
+// Calculate stat modifiers from active status effects
+// Returns array: ['atk' => modifier, 'def' => modifier, ...]
+function getStatusEffectModifiers($effects) {
+  $modifiers = array(
+    'atk' => 0,
+    'def' => 0,
+    'spd' => 0,
+    'evd' => 0,
+    'damage_reduction' => 0, // Percentage
+    'regen' => 0, // HP per turn
+    'poison' => 0 // Damage per turn
+  );
+  
+  foreach ($effects as $effect_name => $expiry) {
+    // Parse effect name for modifiers
+    // Format: effecttype_value (e.g., shield_30, atk_boost_20)
+    if (str_starts_with($effect_name, 'shield_')) {
+      $value = intval(substr($effect_name, 7));
+      $modifiers['damage_reduction'] += $value;
+    } else if (str_starts_with($effect_name, 'regen_')) {
+      $value = intval(substr($effect_name, 6));
+      $modifiers['regen'] += $value;
+    } else if (str_starts_with($effect_name, 'poison_')) {
+      $value = intval(substr($effect_name, 7));
+      $modifiers['poison'] += $value;
+    } else if (str_starts_with($effect_name, 'atk_boost_')) {
+      $value = intval(substr($effect_name, 10));
+      $modifiers['atk'] += $value;
+    } else if (str_starts_with($effect_name, 'def_boost_')) {
+      $value = intval(substr($effect_name, 10));
+      $modifiers['def'] += $value;
+    } else if (str_starts_with($effect_name, 'spd_boost_')) {
+      $value = intval(substr($effect_name, 10));
+      $modifiers['spd'] += $value;
+    } else if (str_starts_with($effect_name, 'evd_boost_')) {
+      $value = intval(substr($effect_name, 10));
+      $modifiers['evd'] += $value;
+    }
+  }
+  
+  return $modifiers;
+}
+
 // Telemetry-based rate limit helper (best-effort)
 // Checks how many matching actions a player performed in a room within a window.
 // Returns an array: [ 'ok' => bool, 'count' => int, 'window_sec' => int, 'cutoff' => 'YYYY-mm-dd HH:ii:ss' ]

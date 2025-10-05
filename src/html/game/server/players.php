@@ -430,8 +430,24 @@ function restAtLocation($db, $data)
   $hp_restored = $hp - $old_hp;
   $mp_restored = $mp - $old_mp;
   
+  // Cleanse negative status effects (poison, etc.) when resting
+  $stats_str_clean = $stats_str;
+  $cleansed_effects = array();
+  try {
+    $effects = parseStatusEffects($stats_str);
+    foreach ($effects as $effect_name => $expiry) {
+      // Remove negative effects
+      if (str_starts_with($effect_name, 'poison_')) {
+        $stats_str_clean = removeStatusEffect($stats_str_clean, $effect_name);
+        $cleansed_effects[] = $effect_name;
+      }
+    }
+  } catch (Throwable $_) {}
+  
   // Update player stats
   $new_stats = setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold, $crt, $skill_points, $job, $unlocked_skills);
+  // Clean any expired effects
+  $new_stats = cleanExpiredEffects($new_stats);
   $up = $db->prepare("UPDATE game_players SET stats = ? WHERE id = ?");
   $up->bind_param("si", $new_stats, $player_id);
   $up->execute();
@@ -456,9 +472,14 @@ function restAtLocation($db, $data)
   } catch (Throwable $_) { }
   
   $result['success'] = true;
-  $result['message'] = 'You rest at ' . $location_name . ' and feel refreshed!';
+  $message = 'You rest at ' . $location_name . ' and feel refreshed!';
+  if (count($cleansed_effects) > 0) {
+    $message .= ' Negative effects cleansed.';
+  }
+  $result['message'] = $message;
   $result['hp_restored'] = $hp_restored;
   $result['mp_restored'] = $mp_restored;
+  $result['cleansed_effects'] = $cleansed_effects;
   $result['player'] = array(
     'hp' => $hp,
     'maxhp' => $effectiveMaxHp,

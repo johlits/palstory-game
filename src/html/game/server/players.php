@@ -149,7 +149,8 @@ function dropItem($db, $data)
   $player_id = intval(clean($data['player_id']));
   $arr = array();
 
-  $di = $db->prepare("DELETE FROM game_items WHERE id = ? AND owner_id = ?");
+  // Place item on ground (set owner_id to NULL) instead of deleting
+  $di = $db->prepare("UPDATE game_items SET owner_id = NULL, equipped = 0 WHERE id = ? AND owner_id = ?");
   $di->bind_param("ii", $item_id, $player_id);
 
   if ($di->execute()) {

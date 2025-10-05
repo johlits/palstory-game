@@ -177,8 +177,9 @@
               preloadNearbyMonsters(newX, newY);
             }
           }
-          // After locations are loaded, update Gather button based on current tile
+          // After locations are loaded, update Gather and Rest buttons based on current tile
           try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
+          try { if (window.player) Locations.updateRestButton(window.player_x, window.player_y); } catch(_) {}
         } else {
           locationsLoaded = true;
           if (newX === null) {
@@ -202,6 +203,7 @@
             }
           }
           try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
+          try { if (window.player) Locations.updateRestButton(window.player_x, window.player_y); } catch(_) {}
         }
       })
       .catch(function (err) {
@@ -368,5 +370,77 @@
         })
         .catch(function(err){ console.error('gather error: ' + err); });
     } catch(e) { console.error(e); }
+  };
+
+  // Rest at current location to restore HP/MP
+  window.Locations.rest = function() {
+    try {
+      var playerName = $("#player").text();
+      var roomId = $("#room_id").text();
+      if (!window.api || typeof window.api.restAtLocation !== 'function') return;
+      if (typeof window.playSound === 'function') { window.playSound(window.getImageUrl("click.mp3")); }
+      
+      window.api.restAtLocation(playerName, roomId)
+        .then(function(resp){
+          console.log('rest resp', resp);
+          
+          // Update player stats if successful
+          if (resp && resp.success && resp.player) {
+            try {
+              // Refresh player display
+              if (window.Players && typeof window.Players.getPlayers === 'function') {
+                window.Players.getPlayers();
+              }
+            } catch (_) {}
+          }
+          
+          // Show rest result notification
+          try {
+            var msg = resp.message || 'Rest complete.';
+            if (resp.success) {
+              msg += ' (HP +' + resp.hp_restored + ', MP +' + resp.mp_restored + ')';
+            }
+            
+            // Create a simple notification (reuse gather dialog for now)
+            var box = document.getElementById('gatherBox');
+            var dlg = document.getElementById('gather-dialog');
+            if (box && dlg) {
+              var msgEl = box.querySelector('.gather-message');
+              if (msgEl) msgEl.textContent = msg;
+              
+              if (typeof window.playSound === 'function') {
+                if (resp.success) { window.playSound(window.getImageUrl('coin.mp3')); }
+                else { window.playSound(window.getImageUrl('click.mp3')); }
+              }
+              dlg.showModal();
+            } else {
+              // Fallback: alert
+              alert(msg);
+            }
+          } catch(_) {
+            console.log('Rest result:', resp.message);
+          }
+        })
+        .catch(function(err){ console.error('rest error: ' + err); });
+    } catch(e) { console.error(e); }
+  };
+
+  // Update rest button visibility based on location type
+  window.Locations.updateRestButton = function(x, y) {
+    try {
+      var key = '' + x + ',' + y;
+      var loc = window.locationsDict[key];
+      var btn = document.getElementById('restBtn');
+      if (!btn) return;
+      
+      // Show rest button if at a town or rest_spot
+      if (loc && loc.location_type && (loc.location_type === 'town' || loc.location_type === 'rest_spot')) {
+        if (btn.classList) btn.classList.remove('hidden');
+        else btn.style.display = '';
+      } else {
+        if (btn.classList) btn.classList.add('hidden');
+        else btn.style.display = 'none';
+      }
+    } catch(_) {}
   };
 })();

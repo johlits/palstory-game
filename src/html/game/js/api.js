@@ -79,6 +79,10 @@
     gatherResource: function(playerName, roomId) {
       return _req({ gather_resource: playerName, room_id: roomId });
     },
+    // Resting
+    restAtLocation: function(playerName, roomId) {
+      return _req({ rest_player: playerName, room_id: roomId });
+    },
     // Rooms
     createRoom: function (name, expiration, regen) {
       return _req({ create_room: name, expiration: expiration, regen: regen });

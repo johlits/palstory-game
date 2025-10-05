@@ -15,7 +15,8 @@ function getLocation($db, $data)
                              resources_locations.name,
                              resources_locations.description,
                              resources_locations.image,
-                             resources_locations.stats AS stats
+                             resources_locations.stats AS stats,
+                             resources_locations.location_type
 				FROM game_locations INNER JOIN resources_locations ON game_locations.resource_id = resources_locations.id 
 				WHERE room_id = ? AND x = ? AND y = ?");
   $ss->bind_param("iii", $room_id, $x, $y);

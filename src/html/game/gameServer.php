@@ -81,6 +81,8 @@ if (isset($data['get_room'])) {
   echo json_encode(getJobs($db));
 } else if (isset($data['get_skills'])) {
   echo json_encode(getSkills($db));
+} else if (isset($data['rest_player'])) {
+  echo json_encode(restAtLocation($db, $data));
 }
 
 mysqli_close($db);

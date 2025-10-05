@@ -308,3 +308,163 @@ function equipItem($db, $data)
   }
   return $arr;
 }
+
+// Rest at a rest spot or town to restore HP/MP
+function restAtLocation($db, $data)
+{
+  $player_name = clean($data['rest_player']);
+  $room_id = intval(clean($data['room_id']));
+  
+  $result = array(
+    'success' => false,
+    'message' => '',
+    'hp_restored' => 0,
+    'mp_restored' => 0,
+    'player' => null
+  );
+  
+  // Rate limit: max 1 rest per 5 seconds per player
+  $rlc = telemetryRateLimitCheck($db, $room_id, $player_name, ['rest'], 5, 1);
+  if (!$rlc['ok']) {
+    $result['message'] = 'You must wait before resting again.';
+    return $result;
+  }
+  
+  // Get player
+  $sp = $db->prepare("SELECT id, x, y, stats FROM game_players WHERE room_id = ? AND name = ?");
+  $sp->bind_param("is", $room_id, $player_name);
+  
+  if (!$sp->execute()) {
+    $sp->close();
+    $result['message'] = 'Player not found.';
+    return $result;
+  }
+  
+  $rp = $sp->get_result();
+  if (mysqli_num_rows($rp) === 0) {
+    $sp->close();
+    $result['message'] = 'Player not found.';
+    return $result;
+  }
+  
+  $row = mysqli_fetch_array($rp);
+  $player_id = intval($row['id']);
+  $player_x = intval($row['x']);
+  $player_y = intval($row['y']);
+  $stats_str = $row['stats'];
+  $sp->close();
+  
+  // Parse player stats
+  $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$crt=5;$gold=0;$skill_points=0;$job='none';$unlocked_skills='';
+  $parts = explode(';', $stats_str);
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    if (str_starts_with($p, 'lvl=')) { $lvl = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'exp=')) { $exp = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'hp=')) { $hp = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'maxhp=')) { $maxhp = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'mp=')) { $mp = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'maxmp=')) { $maxmp = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'atk=')) { $atk = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'def=')) { $def = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'spd=')) { $spd = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'evd=')) { $evd = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'crt=')) { $crt = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'gold=')) { $gold = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'skill_points=')) { $skill_points = intval(explode('=', $p)[1]); }
+    else if (str_starts_with($p, 'job=')) { $job = explode('=', $p)[1]; }
+    else if (str_starts_with($p, 'unlocked_skills=')) { $unlocked_skills = explode('=', $p)[1]; }
+  }
+  
+  // Apply passive skill bonuses to maxhp and maxmp
+  $passiveBonuses = getPassiveSkillBonuses($db, $unlocked_skills);
+  $effectiveMaxHp = $maxhp + $passiveBonuses['maxhp'];
+  $effectiveMaxMp = $maxmp + $passiveBonuses['maxmp'];
+  
+  // Check if player is at a rest spot or town
+  $sl = $db->prepare("SELECT rl.location_type, rl.name FROM game_locations gl INNER JOIN resources_locations rl ON gl.resource_id = rl.id WHERE gl.room_id = ? AND gl.x = ? AND gl.y = ?");
+  $sl->bind_param("iii", $room_id, $player_x, $player_y);
+  
+  if (!$sl->execute()) {
+    $sl->close();
+    $result['message'] = 'Cannot rest here.';
+    return $result;
+  }
+  
+  $lr = $sl->get_result();
+  if (mysqli_num_rows($lr) === 0) {
+    $sl->close();
+    $result['message'] = 'Cannot rest here.';
+    return $result;
+  }
+  
+  $loc_row = mysqli_fetch_array($lr);
+  $location_type = $loc_row['location_type'];
+  $location_name = $loc_row['name'];
+  $sl->close();
+  
+  // Only allow rest at towns or rest_spots
+  if ($location_type !== 'town' && $location_type !== 'rest_spot') {
+    $result['message'] = 'You can only rest at towns or rest spots.';
+    return $result;
+  }
+  
+  // Check if there are monsters at this location
+  $cm = $db->prepare("SELECT 1 FROM game_monsters WHERE room_id = ? AND x = ? AND y = ? LIMIT 1");
+  $cm->bind_param("iii", $room_id, $player_x, $player_y);
+  if ($cm->execute()) {
+    $cmr = $cm->get_result();
+    if (mysqli_num_rows($cmr) > 0) {
+      $cm->close();
+      $result['message'] = 'Cannot rest while enemies are nearby!';
+      return $result;
+    }
+  }
+  $cm->close();
+  
+  // Calculate restoration
+  $old_hp = $hp;
+  $old_mp = $mp;
+  $hp = $effectiveMaxHp;
+  $mp = $effectiveMaxMp;
+  $hp_restored = $hp - $old_hp;
+  $mp_restored = $mp - $old_mp;
+  
+  // Update player stats
+  $new_stats = setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold, $crt, $skill_points, $job, $unlocked_skills);
+  $up = $db->prepare("UPDATE game_players SET stats = ? WHERE id = ?");
+  $up->bind_param("si", $new_stats, $player_id);
+  $up->execute();
+  $up->close();
+  
+  touchPlayer($db, $room_id, $player_name);
+  
+  // Telemetry: rest action
+  try {
+    $det = json_encode([
+      'location' => $location_name,
+      'location_type' => $location_type,
+      'hp_restored' => $hp_restored,
+      'mp_restored' => $mp_restored
+    ]);
+    if ($det === false) { $det = '{"location":"'.addslashes($location_name).'","hp_restored":'.intval($hp_restored).',"mp_restored":'.intval($mp_restored).'}'; }
+    if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'rest', ?)")) {
+      $lg->bind_param("iss", $room_id, $player_name, $det);
+      $lg->execute();
+      $lg->close();
+    }
+  } catch (Throwable $_) { }
+  
+  $result['success'] = true;
+  $result['message'] = 'You rest at ' . $location_name . ' and feel refreshed!';
+  $result['hp_restored'] = $hp_restored;
+  $result['mp_restored'] = $mp_restored;
+  $result['player'] = array(
+    'hp' => $hp,
+    'maxhp' => $effectiveMaxHp,
+    'mp' => $mp,
+    'maxmp' => $effectiveMaxMp
+  );
+  
+  return $result;
+}

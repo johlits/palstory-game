@@ -146,11 +146,11 @@
     var skillTypeLabel = isPassive ? '[PASSIVE]' : '';
     var skillDetails = isPassive ? skill.desc : (skill.desc + ' (MP ' + skill.mp + ', CD ' + skill.cd + 's)');
     
-    var html = '<div style="margin-bottom:8px; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:' + (isPassive ? '#f0f8ff' : '#fff') + ';">';
+    var html = '<div style="margin-bottom:8px; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:' + (isPassive ? '#1a1d20' : '#0d0f12') + ';">';
     html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
     html += '<div>';
     html += '<span class="nes-text ' + statusClass + '">' + (isPassive ? '⚡ ' : '') + skill.name + ' ' + skillTypeLabel + '</span>';
-    html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-top:2px;">' + skillDetails + '</div>';
+    html += '<div style="font-size:0.85em; margin-top:2px; color:#d3d3d3;">' + skillDetails + '</div>';
     html += '</div>';
     html += '<div>';
     if (isUnlocked) {

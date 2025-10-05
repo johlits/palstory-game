@@ -152,11 +152,11 @@
           var canAdvance = stats.lvl >= adv.data.min_level;
           var btnClass = canAdvance ? 'is-primary' : 'is-disabled';
           var btnDisabled = canAdvance ? '' : ' disabled';
-          html += '<div style="margin-bottom:12px; padding:8px; border:2px solid ' + (canAdvance ? '#209cee' : '#ccc') + '; border-radius:4px; background:' + (canAdvance ? '#f0f8ff' : '#f5f5f5') + ';">';
+          html += '<div style="margin-bottom:12px; padding:8px; border:2px solid ' + (canAdvance ? '#209cee' : '#555') + '; border-radius:4px; background:' + (canAdvance ? '#1a1d20' : '#0d0f12') + ';">';
           html += '<div style="margin-bottom:4px;"><span class="nes-text ' + (canAdvance ? 'is-primary' : 'is-disabled') + '" style="font-weight:bold;">' + adv.data.name + ' (Tier ' + adv.data.tier + ')</span></div>';
-          html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-bottom:4px;">' + adv.data.desc + '</div>';
-          html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-bottom:4px;">Modifiers: ' + adv.data.modifiers + '</div>';
-          html += '<div class="nes-text is-disabled" style="font-size:0.8em; margin-bottom:8px;">Required Level: ' + adv.data.min_level + (canAdvance ? '' : ' (You are level ' + stats.lvl + ')') + '</div>';
+          html += '<div style="font-size:0.85em; margin-bottom:4px; color:#d3d3d3;">' + adv.data.desc + '</div>';
+          html += '<div style="font-size:0.85em; margin-bottom:4px; color:#d3d3d3;">Modifiers: ' + adv.data.modifiers + '</div>';
+          html += '<div style="font-size:0.8em; margin-bottom:8px; color:#999;">Required Level: ' + adv.data.min_level + (canAdvance ? '' : ' (You are level ' + stats.lvl + ')') + '</div>';
           html += '<button class="nes-btn ' + btnClass + '"' + btnDisabled + ' onclick="JobSelection.selectJob(\'' + adv.id + '\');">Advance to ' + adv.data.name + '</button>';
           html += '</div>';
         });
@@ -173,10 +173,10 @@
       for (var jobId in JOBS) {
         var job = JOBS[jobId];
         if (job.tier === 1) {
-          html += '<div style="margin-bottom:12px; padding:8px; border:2px solid #209cee; border-radius:4px; background:#f0f8ff;">';
+          html += '<div style="margin-bottom:12px; padding:8px; border:2px solid #209cee; border-radius:4px; background:#1a1d20;">';
           html += '<div style="margin-bottom:4px;"><span class="nes-text is-primary" style="font-weight:bold;">' + job.name + '</span></div>';
-          html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-bottom:4px;">' + job.desc + '</div>';
-          html += '<div class="nes-text is-disabled" style="font-size:0.85em; margin-bottom:8px;">Modifiers: ' + job.modifiers + '</div>';
+          html += '<div style="font-size:0.85em; margin-bottom:4px; color:#d3d3d3;">' + job.desc + '</div>';
+          html += '<div style="font-size:0.85em; margin-bottom:8px; color:#d3d3d3;">Modifiers: ' + job.modifiers + '</div>';
           html += '<button class="nes-btn is-primary" onclick="JobSelection.selectJob(\'' + jobId + '\');">Select ' + job.name + '</button>';
           html += '</div>';
         }

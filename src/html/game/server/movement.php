@@ -35,6 +35,25 @@ function spawnMonster($db, $monsterName, $room_id, $x, $y, $newloc)
 
 function spawnMonsterRoll($db, $room_id, $x, $y, $monsterSpawnRate, $locstats, $newloc)
 {
+  // Check if this is a safe location (town or rest_spot) - don't spawn monsters there
+  $location_type = '';
+  try {
+    $sl = $db->prepare("SELECT rl.location_type FROM game_locations gl INNER JOIN resources_locations rl ON gl.resource_id = rl.id WHERE gl.room_id = ? AND gl.x = ? AND gl.y = ?");
+    $sl->bind_param("iii", $room_id, $x, $y);
+    if ($sl->execute()) {
+      $lr = $sl->get_result();
+      if ($lrow = mysqli_fetch_array($lr)) {
+        $location_type = $lrow['location_type'];
+      }
+    }
+    $sl->close();
+  } catch (Throwable $_) {}
+  
+  // Don't spawn monsters on towns, rest spots, or dungeons (each location type has its own color)
+  if ($location_type === 'town' || $location_type === 'rest_spot' || $location_type === 'dungeon') {
+    return $newloc;
+  }
+  
   // if no monster, roll dice, spawn monster
   $sm = $db->prepare("SELECT * 
 FROM game_monsters 

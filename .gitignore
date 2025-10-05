@@ -1,6 +1,9 @@
 # PalStory Application - Configuration Files
 # Ignore sensitive configuration files containing database credentials and API keys
 
+# Uploads
+src/html/uploads
+
 # Main configuration files
 src/html/story/config.php
 src/html/story/config.js

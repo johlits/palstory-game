@@ -44,6 +44,10 @@
     getMonster: function (roomId, x, y) {
       return _req({ get_monster: roomId, x: x, y: y });
     },
+    
+    getAllMonsters: function (roomId) {
+      return _req({ get_all_monsters: roomId });
+    },
 
     // Music
     getMusic: function () {

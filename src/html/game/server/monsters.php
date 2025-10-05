@@ -25,3 +25,27 @@ function getMonster($db, $data)
   $ss->close();
   return $arr;
 }
+
+function getAllMonsters($db, $data)
+{
+  $room_id = intval(clean($data['get_all_monsters']));
+
+  $ss = $db->prepare("SELECT gm.x, gm.y, gm.id 
+				FROM game_monsters gm 
+				WHERE gm.room_id = ?");
+  $ss->bind_param("i", $room_id);
+
+  $arr = array();
+  if ($ss->execute()) {
+    $r = $ss->get_result();
+    while ($row = mysqli_fetch_array($r)) {
+      array_push($arr, array(
+        'x' => intval($row['x']),
+        'y' => intval($row['y']),
+        'id' => intval($row['id'])
+      ));
+    }
+  }
+  $ss->close();
+  return $arr;
+}

@@ -45,6 +45,8 @@ if (isset($data['get_room'])) {
   echo json_encode(getItems($db, $data));
 } else if (isset($data['get_monster'])) {
   echo json_encode(getMonster($db, $data));
+} else if (isset($data['get_all_monsters'])) {
+  echo json_encode(getAllMonsters($db, $data));
 } else if (isset($data['get_all_locations'])) {
   echo json_encode(getAllLocations($db, $data));
 } else if (isset($data['drop_item'])) {

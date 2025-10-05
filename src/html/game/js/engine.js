@@ -96,6 +96,58 @@
           ctx.strokeRect(this.x, this.y, this.width, this.height);
           ctx.restore();
         }
+        
+        // Draw colored borders for special tiles (meta=3 for locations)
+        if (this.meta === 3 && imgReady) {
+          var borderColor = null;
+          var borderWidth = 3;
+          
+          // Check if tile has a monster (red border - highest priority)
+          // Find this tile's world coordinates by checking locationsDict
+          var tileWorldCoords = null;
+          if (window.locationsDict) {
+            for (var key in window.locationsDict) {
+              if (window.locationsDict[key] === this) {
+                tileWorldCoords = key;
+                break;
+              }
+            }
+          }
+          // Check if any monster is at this tile's coordinates
+          if (tileWorldCoords && window.monsterPositions && window.monsterPositions.length > 0) {
+            var coords = tileWorldCoords.split(',');
+            var tileX = parseInt(coords[0]);
+            var tileY = parseInt(coords[1]);
+            for (var i = 0; i < window.monsterPositions.length; i++) {
+              var monster = window.monsterPositions[i];
+              if (monster.x === tileX && monster.y === tileY) {
+                borderColor = '#ef4444'; // Red for monsters
+                borderWidth = 4;
+                break;
+              }
+            }
+          }
+          
+          // Check location type for special borders (only if no monster)
+          if (!borderColor && this.location_type) {
+            if (this.location_type === 'town') {
+              borderColor = '#22c55e'; // Green for towns
+            } else if (this.location_type === 'rest_spot') {
+              borderColor = '#3b82f6'; // Blue for rest spots
+            } else if (this.location_type === 'dungeon') {
+              borderColor = '#8b5cf6'; // Purple for dungeons
+            }
+          }
+          
+          // Draw the border
+          if (borderColor) {
+            ctx.save();
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = borderWidth;
+            ctx.strokeRect(this.x + borderWidth/2, this.y + borderWidth/2, this.width - borderWidth, this.height - borderWidth);
+            ctx.restore();
+          }
+        }
         if (this.meta < 3) {
           ctx.font = parseInt(Math.min(Math.max(25 - this.name.length, 10), 20)) + 'px Arial';
           ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.strokeStyle = 'black';

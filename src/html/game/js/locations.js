@@ -158,6 +158,12 @@
             locationsDict["" + item.x + "," + item.y] = landscape;
           });
           locationsLoaded = true;
+          // Fetch all monsters for border rendering
+          try {
+            if (window.Monsters && typeof window.Monsters.getAllMonsters === 'function') {
+              window.Monsters.getAllMonsters();
+            }
+          } catch(_) {}
           if (newX === null) {
             if (window.player) { ensureAdjacentTilesVisible(player_x, player_y); }
             canMove = true;
@@ -527,5 +533,34 @@
         else btn.style.display = 'none';
       }
     } catch(_) {}
+  };
+
+  // Update all location-related UI elements for current tile
+  window.Locations.updateCurrentTile = function(x, y) {
+    try {
+      var px = (typeof x === 'number') ? x : window.player_x;
+      var py = (typeof y === 'number') ? y : window.player_y;
+      
+      // Update location box
+      if (window.Locations && typeof window.Locations.showLocationBox === 'function') {
+        window.Locations.showLocationBox(px, py);
+      }
+      
+      // Update all buttons
+      if (window.Locations && typeof window.Locations.updateGatherButton === 'function') {
+        window.Locations.updateGatherButton(px, py);
+      }
+      if (window.Locations && typeof window.Locations.updateRestButton === 'function') {
+        window.Locations.updateRestButton(px, py);
+      }
+      if (window.Locations && typeof window.Locations.updateRespawnButton === 'function') {
+        window.Locations.updateRespawnButton(px, py);
+      }
+      if (window.Locations && typeof window.Locations.updateShopButton === 'function') {
+        window.Locations.updateShopButton(px, py);
+      }
+    } catch(e) {
+      console.error('Error updating current tile:', e);
+    }
   };
 })();

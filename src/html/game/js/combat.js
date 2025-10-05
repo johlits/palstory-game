@@ -317,8 +317,14 @@
         }
       } catch(_) {}
       refreshMonsters().then(function(){
+        // Refresh all monster positions for border rendering
+        try {
+          if (window.Monsters && typeof window.Monsters.getAllMonsters === 'function') {
+            window.Monsters.getAllMonsters();
+          }
+        } catch(_) {}
         window.canMove = true;
-        try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {}
+        try { if (window.Locations && typeof window.Locations.updateCurrentTile === 'function') { window.Locations.updateCurrentTile(window.player_x, window.player_y); } } catch(_) {}
         if (window.Movement && typeof window.Movement.flush === 'function') { window.Movement.flush(); }
       });
     } catch (e) {

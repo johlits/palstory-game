@@ -148,9 +148,9 @@
                   window.locations.push(landscape);
                   window.locationsDict['' + resp[0].x + ',' + resp[0].y] = landscape;
                   ensureAdj(window.player_x, window.player_y);
-                  getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
+                  getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateCurrentTile === 'function') { window.Locations.updateCurrentTile(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
                 } else {
-                  window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer();
+                  window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateCurrentTile === 'function') { window.Locations.updateCurrentTile(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer();
                 }
               },
               error: function () { window.canMove = true; dispatch('move:complete', { result: 'error' }); maybeFlushBuffer(); }
@@ -163,7 +163,7 @@
             } else {
               console.log('no new location, but get monsters');
               ensureAdj(window.player_x, window.player_y);
-              getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateGatherButton === 'function') { window.Locations.updateGatherButton(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
+              getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'no_draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateCurrentTile === 'function') { window.Locations.updateCurrentTile(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
             }
           }
         } else if ((Array.isArray(response) && response[0] === 'fight') || (response && typeof response === 'object' && !Array.isArray(response) && response.type === 'fight')) {

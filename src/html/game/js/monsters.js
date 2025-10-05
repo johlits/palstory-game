@@ -169,7 +169,29 @@
     });
   }
 
+  function getAllMonsters() {
+    var roomId = $('#room_id').text();
+    if (!(window.api && typeof window.api.getAllMonsters === 'function')) {
+      return Promise.resolve([]);
+    }
+    return window.api.getAllMonsters(roomId)
+      .then(function(response) {
+        if (Array.isArray(response)) {
+          window.monsterPositions = response; // Store globally for border rendering
+          return response;
+        }
+        window.monsterPositions = [];
+        return [];
+      })
+      .catch(function(err) {
+        console.error('Error fetching all monsters:', err);
+        window.monsterPositions = [];
+        return [];
+      });
+  }
+
   if (!window.Monsters) window.Monsters = {};
   window.Monsters.preloadNearbyMonsters = preloadNearbyMonsters;
   window.Monsters.getMonsters = getMonsters;
+  window.Monsters.getAllMonsters = getAllMonsters;
 })();

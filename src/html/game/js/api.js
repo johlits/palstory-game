@@ -95,6 +95,17 @@
     // Heartbeat
     pingPlayer: function(playerName, roomId) {
       return _req({ ping_player: playerName, room_id: roomId });
+    },
+    
+    // Shop
+    getShop: function(playerName, roomId) {
+      return _req({ get_shop: playerName, room_id: roomId });
+    },
+    buyItem: function(playerName, roomId, itemId) {
+      return _req({ buy_item: playerName, room_id: roomId, item_id: itemId });
+    },
+    sellItem: function(playerName, roomId, itemDbId) {
+      return _req({ sell_item: playerName, room_id: roomId, item_db_id: itemDbId });
     }
   };
 

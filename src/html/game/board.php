@@ -141,6 +141,31 @@
 </section>
 
 <section>
+  <dialog class="nes-dialog is-dark is-rounded" id="shop-dialog" style="max-width: 600px; width: 90%;">
+    <form method="dialog">
+      <p class="title">Shop</p>
+      <div class="nes-container with-title" style="margin-bottom: 16px;">
+        <p class="title">Tabs</p>
+        <button type="button" id="shop-tab-buy" class="nes-btn is-primary" onclick="Shop.switchTab('buy')">Buy</button>
+        <button type="button" id="shop-tab-sell" class="nes-btn" onclick="Shop.switchTab('sell')">Sell</button>
+      </div>
+      
+      <div id="shop-panel-buy" style="max-height: 400px; overflow-y: auto;">
+        <div id="shop-buy-items"></div>
+      </div>
+      
+      <div id="shop-panel-sell" style="max-height: 400px; overflow-y: auto; display: none;">
+        <div id="shop-sell-items"></div>
+      </div>
+      
+      <menu class="dialog-menu">
+        <button class="nes-btn" onclick="playSound(getImageUrl('click.mp3')); Shop.close();"><span>Close</span></button>
+      </menu>
+    </form>
+  </dialog>
+</section>
+
+<section>
   <dialog class="nes-dialog is-dark is-rounded" id="help-dialog">
     <form method="dialog">
       <p class="title">Help</p>
@@ -362,6 +387,7 @@
   <button id="gatherBtn" type="button" class="nes-btn hidden" onclick="Locations.gather()">Gather</button>
   <button id="restBtn" type="button" class="nes-btn is-warning hidden" onclick="Locations.rest()">Rest</button>
   <button id="respawnBtn" type="button" class="nes-btn is-primary hidden" onclick="Locations.setRespawn()">Set Respawn</button>
+  <button id="shopBtn" type="button" class="nes-btn is-success hidden" onclick="Shop.open()">Shop</button>
 </div>
   </div>
 
@@ -471,6 +497,7 @@
 <script src="js/players.js"></script>
 <script src="js/rooms.js"></script>
 <script src="js/locations.js"></script>
+<script src="js/shop.js"></script>
 <script src="js/movement.js"></script>
 <script src="js/monsters.js"></script>
 <script src="js/ui.js"></script>

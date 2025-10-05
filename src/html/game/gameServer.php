@@ -14,6 +14,7 @@ require_once __DIR__ . '/server/monsters.php';
 require_once __DIR__ . '/server/movement.php';
 require_once __DIR__ . '/server/combat.php';
 require_once __DIR__ . '/server/skills.php';
+require_once __DIR__ . '/server/shop.php';
 
 // API
 
@@ -85,6 +86,12 @@ if (isset($data['get_room'])) {
   echo json_encode(restAtLocation($db, $data));
 } else if (isset($data['set_respawn'])) {
   echo json_encode(setRespawnPoint($db, $data));
+} else if (isset($data['get_shop'])) {
+  echo json_encode(getShopInventory($db, $data));
+} else if (isset($data['buy_item'])) {
+  echo json_encode(buyItem($db, $data));
+} else if (isset($data['sell_item'])) {
+  echo json_encode(sellItem($db, $data));
 }
 
 mysqli_close($db);

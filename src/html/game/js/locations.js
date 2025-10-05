@@ -53,6 +53,7 @@
               locations.push(landscape);
               // attach per-tile game stats (gstats) for UI logic like gather availability
               try { landscape.gstats = response[0].gstats || ""; } catch(_) { landscape.gstats = ""; }
+              try { landscape.location_type = response[0].location_type || ""; } catch(_) { landscape.location_type = ""; }
               locationsDict[key] = landscape;
             }
           })
@@ -153,6 +154,7 @@
             );
             locations.push(landscape);
             try { landscape.gstats = item.gstats || ""; } catch(_) { landscape.gstats = ""; }
+            try { landscape.location_type = item.location_type || ""; } catch(_) { landscape.location_type = ""; }
             locationsDict["" + item.x + "," + item.y] = landscape;
           });
           locationsLoaded = true;
@@ -177,10 +179,11 @@
               preloadNearbyMonsters(newX, newY);
             }
           }
-          // After locations are loaded, update Gather, Rest, and Respawn buttons based on current tile
+          // After locations are loaded, update Gather, Rest, Respawn, and Shop buttons based on current tile
           try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
           try { if (window.player) Locations.updateRestButton(window.player_x, window.player_y); } catch(_) {}
           try { if (window.player) Locations.updateRespawnButton(window.player_x, window.player_y); } catch(_) {}
+          try { if (window.player) Locations.updateShopButton(window.player_x, window.player_y); } catch(_) {}
         } else {
           locationsLoaded = true;
           if (newX === null) {
@@ -206,6 +209,7 @@
           try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
           try { if (window.player) Locations.updateRestButton(window.player_x, window.player_y); } catch(_) {}
           try { if (window.player) Locations.updateRespawnButton(window.player_x, window.player_y); } catch(_) {}
+          try { if (window.player) Locations.updateShopButton(window.player_x, window.player_y); } catch(_) {}
         }
       })
       .catch(function (err) {
@@ -279,6 +283,7 @@
               tile = landscape;
             }
             try { tile.gstats = (typeof resp[0].gstats !== 'undefined') ? (resp[0].gstats || '') : ''; } catch(_) { tile.gstats = ''; }
+            try { tile.location_type = (typeof resp[0].location_type !== 'undefined') ? (resp[0].location_type || '') : ''; } catch(_) { tile.location_type = ''; }
             var gs2 = tile.gstats || '';
             if (/(^|;)gather=1(;|$)/.test('' + gs2)) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; }
           }
@@ -495,6 +500,25 @@
       if (!btn) return;
       
       // Show respawn button only at towns
+      if (loc && loc.location_type && loc.location_type === 'town') {
+        if (btn.classList) btn.classList.remove('hidden');
+        else btn.style.display = '';
+      } else {
+        if (btn.classList) btn.classList.add('hidden');
+        else btn.style.display = 'none';
+      }
+    } catch(_) {}
+  };
+
+  // Update shop button visibility based on location type
+  window.Locations.updateShopButton = function(x, y) {
+    try {
+      var key = '' + x + ',' + y;
+      var loc = window.locationsDict[key];
+      var btn = document.getElementById('shopBtn');
+      if (!btn) return;
+      
+      // Show shop button only at towns
       if (loc && loc.location_type && loc.location_type === 'town') {
         if (btn.classList) btn.classList.remove('hidden');
         else btn.style.display = '';

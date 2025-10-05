@@ -442,7 +442,7 @@ function fightMonster($db, $data, $itemDropRate)
                 $base_force = $effectiveAtk + rand(0, $effectiveAtk);
                 $player_force = $using_skill ? intval(round($base_force * $skill_multiplier)) : $base_force;
                 $monster_force = $monster_def + rand(0, $monster_def);
-                $hit = max(0, $player_force - $monster_force);
+                $hit = max(1, $player_force - $monster_force); // Minimum 1 damage
                 
                 // Apply synergy bonus if triggered
                 if ($using_skill && isset($synergy) && $synergy['triggered']) {
@@ -518,23 +518,7 @@ function fightMonster($db, $data, $itemDropRate)
                           $ii->bind_param("isii", $room_id, $item_resource_stats, $item_resource_id, $player_id);
                           $ii->execute();
                           $ii->close();
-
-                          // Telemetry: combat end (lose)
-                  try {
-                    $detl = json_encode([
-                      'outcome' => 'lose',
-                      'player' => $player_name,
-                      'monster' => ['id' => $monster_id, 'name' => $monster_name],
-                      'summary' => [ 'ticks' => $ticks, 'damage_dealt' => $playerDamageDealt, 'damage_taken' => $monsterDamageDealt ]
-                    ]);
-                    if ($detl === false) { $detl = '{"outcome":"lose","player":"'.addslashes($player_name).'","monster":{"id":'.intval($monster_id).',"name":"'.addslashes($monster_name).'"},"summary":{"ticks":'.intval($ticks).',"damage_dealt":'.intval($playerDamageDealt).',"damage_taken":'.intval($monsterDamageDealt).'}}'; }
-                    if ($lgl = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'combat_end', ?)")) {
-                      $lgl->bind_param("iss", $room_id, $player_name, $detl);
-                      $lgl->execute();
-                      $lgl->close();
-                    }
-                  } catch (Throwable $_) { }
-                  break;
+                          break;
                         }
                       }
                     }
@@ -691,7 +675,7 @@ function fightMonster($db, $data, $itemDropRate)
                 $base_monster_force = $monster_atk + rand(0, $monster_atk);
                 $monster_force = $monster_using_skill ? intval(round($base_monster_force * $monster_skill_mult)) : $base_monster_force;
                 $player_force = $effectiveDef + rand(0, $effectiveDef);
-                $hit = max(0, $monster_force - $player_force);
+                $hit = max(1, $monster_force - $player_force); // Minimum 1 damage
                 // Monster critical hit check
                 $is_monster_crit = false;
                 if (rand(1, 100) <= min(95, $monster_crt)) {

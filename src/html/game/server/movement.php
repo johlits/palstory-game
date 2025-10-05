@@ -109,7 +109,8 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
   $arr = array();
   $newloc = true;
   $drawLocation = false;
-  if ($diffx + $diffy <= 1) {
+  // Validate single-tile movement only (no diagonals, no teleportation)
+  if ($diffx <= 1 && $diffy <= 1 && ($diffx + $diffy) <= 1 && ($diffx + $diffy) > 0) {
 
     $sls = $db->prepare("SELECT * 
 				FROM game_locations 
@@ -198,7 +199,19 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
 
         // Out-of-combat MP regen: +1 MP up to maxmp on successful non-fight move
         try {
-          $stats_str = isset($row["stats"]) ? strval($row["stats"]) : '';
+          // Fetch current player stats for MP regen
+          $stats_str = '';
+          $gp = $db->prepare("SELECT stats FROM game_players WHERE name = ? AND room_id = ? LIMIT 1");
+          if ($gp) {
+            $gp->bind_param("si", $player_name, $room_id);
+            if ($gp->execute()) {
+              $gpr = $gp->get_result();
+              if ($gprow = mysqli_fetch_array($gpr)) {
+                $stats_str = strval($gprow['stats']);
+              }
+            }
+            $gp->close();
+          }
           if ($stats_str !== '') {
             $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$crt=5;$gold=0;$skill_points=0;$job='none';$unlocked_skills='';
             $parts = explode(';', $stats_str);
@@ -252,6 +265,11 @@ function movePlayer($db, $data, $itemDropRate, $monsterSpawnRate)
   $room_id = intval(clean($data['room_id']));
   $x = intval(clean($data['x']));
   $y = intval(clean($data['y']));
+
+  // Validate coordinate bounds (prevent extreme coordinates)
+  if ($x < -1000 || $x > 1000 || $y < -1000 || $y > 1000) {
+    return array('err', 'invalid_coordinates');
+  }
 
   // Basic rate limit: max 5 move requests per second per player (best-effort)
   try {

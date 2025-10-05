@@ -489,3 +489,96 @@ function restAtLocation($db, $data)
   
   return $result;
 }
+
+// Set respawn point at current location (must be at a town)
+function setRespawnPoint($db, $data)
+{
+  $player_name = clean($data['set_respawn']);
+  $room_id = intval(clean($data['room_id']));
+  
+  $result = array(
+    'success' => false,
+    'message' => ''
+  );
+  
+  // Get player
+  $sp = $db->prepare("SELECT id, x, y FROM game_players WHERE room_id = ? AND name = ?");
+  $sp->bind_param("is", $room_id, $player_name);
+  
+  if (!$sp->execute()) {
+    $sp->close();
+    $result['message'] = 'Player not found.';
+    return $result;
+  }
+  
+  $rp = $sp->get_result();
+  if (mysqli_num_rows($rp) === 0) {
+    $sp->close();
+    $result['message'] = 'Player not found.';
+    return $result;
+  }
+  
+  $row = mysqli_fetch_array($rp);
+  $player_id = intval($row['id']);
+  $player_x = intval($row['x']);
+  $player_y = intval($row['y']);
+  $sp->close();
+  
+  // Check if player is at a town
+  $sl = $db->prepare("SELECT rl.location_type, rl.name FROM game_locations gl INNER JOIN resources_locations rl ON gl.resource_id = rl.id WHERE gl.room_id = ? AND gl.x = ? AND gl.y = ?");
+  $sl->bind_param("iii", $room_id, $player_x, $player_y);
+  
+  if (!$sl->execute()) {
+    $sl->close();
+    $result['message'] = 'Cannot set respawn point here.';
+    return $result;
+  }
+  
+  $lr = $sl->get_result();
+  if (mysqli_num_rows($lr) === 0) {
+    $sl->close();
+    $result['message'] = 'Cannot set respawn point here.';
+    return $result;
+  }
+  
+  $loc_row = mysqli_fetch_array($lr);
+  $location_type = $loc_row['location_type'];
+  $location_name = $loc_row['name'];
+  $sl->close();
+  
+  // Only allow setting respawn at towns
+  if ($location_type !== 'town') {
+    $result['message'] = 'You can only set your respawn point at towns.';
+    return $result;
+  }
+  
+  // Update respawn point
+  $up = $db->prepare("UPDATE game_players SET respawn_x = ?, respawn_y = ? WHERE id = ?");
+  $up->bind_param("iii", $player_x, $player_y, $player_id);
+  $up->execute();
+  $up->close();
+  
+  touchPlayer($db, $room_id, $player_name);
+  
+  // Telemetry: set respawn
+  try {
+    $det = json_encode([
+      'location' => $location_name,
+      'x' => $player_x,
+      'y' => $player_y
+    ]);
+    if ($det === false) { $det = '{"location":"'.addslashes($location_name).'","x":'.intval($player_x).',"y":'.intval($player_y).'}'; }
+    if ($lg = $db->prepare("INSERT INTO game_logs (room_id, player_name, action, details) VALUES (?, ?, 'set_respawn', ?)")) {
+      $lg->bind_param("iss", $room_id, $player_name, $det);
+      $lg->execute();
+      $lg->close();
+    }
+  } catch (Throwable $_) { }
+  
+  $result['success'] = true;
+  $result['message'] = 'Respawn point set at ' . $location_name . '.';
+  $result['respawn_x'] = $player_x;
+  $result['respawn_y'] = $player_y;
+  
+  return $result;
+}

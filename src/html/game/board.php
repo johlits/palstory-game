@@ -361,6 +361,7 @@
   <button id="moveSuccessBtn" type="button" class="nes-btn is-success" onclick="Movement.move(window.moveDirection)">Move</button>
   <button id="gatherBtn" type="button" class="nes-btn hidden" onclick="Locations.gather()">Gather</button>
   <button id="restBtn" type="button" class="nes-btn is-warning hidden" onclick="Locations.rest()">Rest</button>
+  <button id="respawnBtn" type="button" class="nes-btn is-primary hidden" onclick="Locations.setRespawn()">Set Respawn</button>
 </div>
   </div>
 

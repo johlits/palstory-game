@@ -83,6 +83,8 @@ if (isset($data['get_room'])) {
   echo json_encode(getSkills($db));
 } else if (isset($data['rest_player'])) {
   echo json_encode(restAtLocation($db, $data));
+} else if (isset($data['set_respawn'])) {
+  echo json_encode(setRespawnPoint($db, $data));
 }
 
 mysqli_close($db);

@@ -177,9 +177,10 @@
               preloadNearbyMonsters(newX, newY);
             }
           }
-          // After locations are loaded, update Gather and Rest buttons based on current tile
+          // After locations are loaded, update Gather, Rest, and Respawn buttons based on current tile
           try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
           try { if (window.player) Locations.updateRestButton(window.player_x, window.player_y); } catch(_) {}
+          try { if (window.player) Locations.updateRespawnButton(window.player_x, window.player_y); } catch(_) {}
         } else {
           locationsLoaded = true;
           if (newX === null) {
@@ -204,6 +205,7 @@
           }
           try { if (window.player) Locations.updateGatherButton(window.player_x, window.player_y); } catch(_) {}
           try { if (window.player) Locations.updateRestButton(window.player_x, window.player_y); } catch(_) {}
+          try { if (window.player) Locations.updateRespawnButton(window.player_x, window.player_y); } catch(_) {}
         }
       })
       .catch(function (err) {
@@ -435,6 +437,65 @@
       
       // Show rest button if at a town or rest_spot
       if (loc && loc.location_type && (loc.location_type === 'town' || loc.location_type === 'rest_spot')) {
+        if (btn.classList) btn.classList.remove('hidden');
+        else btn.style.display = '';
+      } else {
+        if (btn.classList) btn.classList.add('hidden');
+        else btn.style.display = 'none';
+      }
+    } catch(_) {}
+  };
+
+  // Set respawn point at current location
+  window.Locations.setRespawn = function() {
+    try {
+      var playerName = $("#player").text();
+      var roomId = $("#room_id").text();
+      if (!window.api || typeof window.api.setRespawnPoint !== 'function') return;
+      if (typeof window.playSound === 'function') { window.playSound(window.getImageUrl("click.mp3")); }
+      
+      window.api.setRespawnPoint(playerName, roomId)
+        .then(function(resp){
+          console.log('set respawn resp', resp);
+          
+          // Show result notification
+          try {
+            var msg = resp.message || 'Respawn point set.';
+            
+            // Reuse gather dialog for notification
+            var box = document.getElementById('gatherBox');
+            var dlg = document.getElementById('gather-dialog');
+            if (box && dlg) {
+              var msgEl = box.querySelector('.gather-message');
+              if (msgEl) msgEl.textContent = msg;
+              
+              if (typeof window.playSound === 'function') {
+                if (resp.success) { window.playSound(window.getImageUrl('coin.mp3')); }
+                else { window.playSound(window.getImageUrl('click.mp3')); }
+              }
+              dlg.showModal();
+            } else {
+              // Fallback: alert
+              alert(msg);
+            }
+          } catch(_) {
+            console.log('Set respawn result:', resp.message);
+          }
+        })
+        .catch(function(err){ console.error('set respawn error: ' + err); });
+    } catch(e) { console.error(e); }
+  };
+
+  // Update respawn button visibility based on location type
+  window.Locations.updateRespawnButton = function(x, y) {
+    try {
+      var key = '' + x + ',' + y;
+      var loc = window.locationsDict[key];
+      var btn = document.getElementById('respawnBtn');
+      if (!btn) return;
+      
+      // Show respawn button only at towns
+      if (loc && loc.location_type && loc.location_type === 'town') {
         if (btn.classList) btn.classList.remove('hidden');
         else btn.style.display = '';
       } else {

@@ -646,32 +646,43 @@ function fightMonster($db, $data, $itemDropRate)
 
                   $result["events"][] = array("t" => "player_died", "name" => $player_name);
                   $result["log"][] = $player_name . " died.";
-                  $reset_player_x = 0;
-                  $reset_player_y = 0;
+                  
+                  // Get respawn point
+                  $respawn_x = 0;
+                  $respawn_y = 0;
+                  try {
+                    $rsp = $db->prepare("SELECT respawn_x, respawn_y FROM game_players WHERE id = ?");
+                    $rsp->bind_param("i", $player_id);
+                    if ($rsp->execute()) {
+                      $rsp_result = $rsp->get_result();
+                      if ($rsp_row = mysqli_fetch_array($rsp_result)) {
+                        $respawn_x = intval($rsp_row['respawn_x']);
+                        $respawn_y = intval($rsp_row['respawn_y']);
+                      }
+                    }
+                    $rsp->close();
+                  } catch (Throwable $_) {}
+                  
+                  // Death penalties: lose 50% gold and 25% of current level EXP
+                  $player_gold = intval($player_gold * 0.5);
+                  // Calculate EXP loss (25% of current level progress)
+                  $exp_for_current_level = ($player_lvl - 1) * 100; // Assuming 100 EXP per level
+                  $exp_in_current_level = $player_exp - $exp_for_current_level;
+                  $exp_loss = intval($exp_in_current_level * 0.25);
+                  $player_exp = max($exp_for_current_level, $player_exp - $exp_loss);
+                  
+                  // Restore HP/MP
                   $player_hp = $player_maxhp;
                   $player_mp = $player_maxmp;
-                  $player_exp = 0;
-                  $player_gold = 0;
 
-                  // update player stats
+                  // Update player stats and position (items are kept)
                   $up = $db->prepare("UPDATE game_players SET stats = ?, x = ?, y = ? WHERE id = ?");
                   $player_stats_str = setPlayerStats($player_lvl, $player_exp, $player_hp, $player_maxhp, $player_mp, $player_maxmp, $player_atk, $player_def, $player_spd, $player_evd, $player_gold, $player_crt, $player_skill_points, $player_job, $player_unlocked_skills);
-                  foreach ($cooldowns as $k => $v) { $player_stats_str .= $k . "=" . intval($v) . ";"; }
-                  $up->bind_param("siii", $player_stats_str, $reset_player_x, $reset_player_y, $player_id);
+                  // Clean expired effects and cooldowns on death
+                  $player_stats_str = cleanExpiredEffects($player_stats_str);
+                  $up->bind_param("siii", $player_stats_str, $respawn_x, $respawn_y, $player_id);
                   $up->execute();
                   $up->close();
-
-                  $di = $db->prepare("DELETE FROM game_items 
-                    WHERE owner_id = ?");
-                  $di->bind_param("i", $player_id);
-                  if ($di->execute()) {
-                    $dp = $db->prepare("DELETE FROM game_players 
-                    WHERE id = ?");
-                    $dp->bind_param("i", $player_id);
-                    $dp->execute();
-                    $dp->close();
-                  }
-                  $di->close();
 
                   $result["outcome"] = "lose";
                   // Touch after defeat/reset

@@ -83,6 +83,10 @@
     restAtLocation: function(playerName, roomId) {
       return _req({ rest_player: playerName, room_id: roomId });
     },
+    // Respawn
+    setRespawnPoint: function(playerName, roomId) {
+      return _req({ set_respawn: playerName, room_id: roomId });
+    },
     // Rooms
     createRoom: function (name, expiration, regen) {
       return _req({ create_room: name, expiration: expiration, regen: regen });

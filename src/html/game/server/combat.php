@@ -319,11 +319,15 @@ function fightMonster($db, $data, $itemDropRate)
             }
           } catch (Throwable $_) { }
 
-          // Calculate effective stats with items and passive skills
-          $effectiveAtk = $player_atk + $itemAtk + $passiveAtk;
-          $effectiveDef = $player_def + $itemDef + $passiveDef;
-          $effectiveSpd = $player_spd + $itemSpd + $passiveSpd;
-          $effectiveEvd = $player_evd + $itemEvd + $passiveEvd;
+          // Parse and apply active status effects
+          $activeEffects = parseStatusEffects($player_stats_str);
+          $effectModifiers = getStatusEffectModifiers($activeEffects);
+          
+          // Calculate effective stats with items, passive skills, and active status effects
+          $effectiveAtk = $player_atk + $itemAtk + $passiveAtk + $effectModifiers['atk'];
+          $effectiveDef = $player_def + $itemDef + $passiveDef + $effectModifiers['def'];
+          $effectiveSpd = $player_spd + $itemSpd + $passiveSpd + $effectModifiers['spd'];
+          $effectiveEvd = $player_evd + $itemEvd + $passiveEvd + $effectModifiers['evd'];
           $effectiveCrt = $player_crt + $itemCrt + $passiveCrt;
           $effectiveMaxHp = $player_maxhp + $passiveMaxHp;
           $effectiveMaxMp = $player_maxmp + $passiveMaxMp;
@@ -394,6 +398,30 @@ function fightMonster($db, $data, $itemDropRate)
                     } catch (Throwable $_) { }
                     $result["events"][] = array("t" => "skill_used", "name" => $skill_name, "mp_spent" => $skill_cost);
                     $result["log"][] = $player_name . " used " . ucfirst(str_replace('_',' ', $skill_name)) . " (-".$skill_cost." MP)!";
+                    
+                    // Apply status effects for buff/debuff skills
+                    $effect_applied = false;
+                    $effect_name = '';
+                    $effect_duration = 0;
+                    switch ($skill_name) {
+                      case 'shield_stance': $effect_name = 'shield_30'; $effect_duration = 10; break;
+                      case 'battle_shout': $effect_name = 'atk_boost_20'; $effect_duration = 15; break;
+                      case 'poison_strike': $effect_name = 'poison_5'; $effect_duration = 15; break;
+                      case 'shadow_step': $effect_name = 'evd_boost_50'; $effect_duration = 8; break;
+                      case 'frost_armor': $effect_name = 'shield_25'; $effect_duration = 12; break;
+                      case 'arcane_surge': $effect_name = 'atk_boost_30'; $effect_duration = 10; break;
+                      case 'holy_shield': $effect_name = 'shield_35'; $effect_duration = 12; break;
+                      case 'regeneration': $effect_name = 'regen_8'; $effect_duration = 15; break;
+                      case 'hunters_mark': $effect_name = 'atk_boost_25'; $effect_duration = 12; break;
+                      case 'evasive_maneuvers': $effect_name = 'spd_boost_40'; $effect_duration = 10; break;
+                      case 'feral_instinct': $effect_name = 'atk_boost_20'; $effect_duration = 12; break;
+                      case 'nature_ward': $effect_name = 'shield_20'; $effect_duration = 10; break;
+                    }
+                    if ($effect_name !== '') {
+                      $player_stats_str = addStatusEffect($player_stats_str, $effect_name, $effect_duration);
+                      $effect_applied = true;
+                      $result["log"][] = "Effect applied: " . ucfirst(str_replace('_', ' ', $effect_name)) . " for " . $effect_duration . "s!";
+                    }
                   } else {
                     // Not enough MP; skill ignored
                     $result["log"][] = "Not enough MP to use skill.";
@@ -411,6 +439,15 @@ function fightMonster($db, $data, $itemDropRate)
                   $is_crit = true;
                   $hit = intval(round($hit * 2.0)); // 2x damage on crit
                 }
+                
+                // Apply poison DoT to monster if player has poison effect active
+                if ($effectModifiers['poison'] > 0) {
+                  $poison_dmg = $effectModifiers['poison'];
+                  $monster_hp = $monster_hp - $poison_dmg;
+                  $playerDamageDealt += $poison_dmg;
+                  $result["log"][] = $monster_name . " takes " . $poison_dmg . " poison damage!";
+                }
+                
                 $monster_hp = $monster_hp - $hit;
                 $playerDamageDealt += $hit;
                 $result["events"][] = array("t" => "player_hit", "dmg" => $hit, "crit" => $is_crit, "monster_hp" => max(0, $monster_hp));
@@ -638,8 +675,26 @@ function fightMonster($db, $data, $itemDropRate)
                   $is_monster_crit = true;
                   $hit = intval(round($hit * 2.0)); // 2x damage on crit
                 }
+                
+                // Apply damage reduction from shield effects
+                if ($effectModifiers['damage_reduction'] > 0) {
+                  $reduction_pct = min(75, $effectModifiers['damage_reduction']); // Cap at 75%
+                  $reduced = intval($hit * $reduction_pct / 100);
+                  $hit = max(0, $hit - $reduced);
+                  if ($reduced > 0) {
+                    $result["log"][] = "Shield absorbs " . $reduced . " damage!";
+                  }
+                }
+                
                 $player_hp = $player_hp - $hit;
                 $monsterDamageDealt += $hit;
+                
+                // Apply regeneration healing
+                if ($effectModifiers['regen'] > 0) {
+                  $heal = $effectModifiers['regen'];
+                  $player_hp = min($player_maxhp, $player_hp + $heal);
+                  $result["log"][] = $player_name . " regenerates " . $heal . " HP!";
+                }
                 $result["events"][] = array("t" => "monster_hit", "dmg" => $hit, "crit" => $is_monster_crit, "player_hp" => max(0, $player_hp));
                 $result["log"][] = $monster_name . ($is_monster_crit ? " crits for " : " hits for ") . $hit . " damage" . ($is_monster_crit ? "!" : ".");
                 if ($player_hp <= 0) {

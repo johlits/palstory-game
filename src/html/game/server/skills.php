@@ -103,7 +103,7 @@ function unlockSkill($db, $data)
   $skill = clean($data['skill']);
   
   // Get skill definition from database
-  $skill_check = $db->prepare("SELECT skill_id, unlock_cost, required_job FROM resources_skills WHERE skill_id = ? AND banned = 0");
+  $skill_check = $db->prepare("SELECT skill_id, unlock_cost, required_job, required_skills FROM resources_skills WHERE skill_id = ? AND banned = 0");
   $skill_check->bind_param("s", $skill);
   $skill_check->execute();
   $skill_result = $skill_check->get_result();
@@ -114,6 +114,7 @@ function unlockSkill($db, $data)
   $skill_row = mysqli_fetch_array($skill_result);
   $skill_cost = intval($skill_row['unlock_cost']);
   $required_job = $skill_row['required_job'];
+  $required_skills_str = $skill_row['required_skills'];
   $skill_check->close();
   
   // Get player
@@ -158,6 +159,21 @@ function unlockSkill($db, $data)
       $unlocked_array = $unlocked_skills === '' ? array() : explode(',', $unlocked_skills);
       if (in_array($skill, $unlocked_array)) {
         return array('err' => 'already_unlocked');
+      }
+      
+      // Check skill prerequisites
+      if ($required_skills_str !== null && $required_skills_str !== '') {
+        $required_skills_array = explode(',', $required_skills_str);
+        $missing_prereqs = array();
+        foreach ($required_skills_array as $req_skill) {
+          $req_skill = trim($req_skill);
+          if ($req_skill !== '' && !in_array($req_skill, $unlocked_array)) {
+            $missing_prereqs[] = $req_skill;
+          }
+        }
+        if (count($missing_prereqs) > 0) {
+          return array('err' => 'missing_prerequisites', 'required_skills' => $missing_prereqs);
+        }
       }
       
       // Check skill points
@@ -252,7 +268,7 @@ function getSkills($db)
 {
   $skills = array();
   try {
-    $query = $db->prepare("SELECT skill_id, name, description, mp_cost, cooldown_sec, damage_multiplier, unlock_cost, required_job FROM resources_skills WHERE banned = 0 ORDER BY required_job ASC, name ASC");
+    $query = $db->prepare("SELECT skill_id, name, description, mp_cost, cooldown_sec, damage_multiplier, unlock_cost, required_job, required_skills FROM resources_skills WHERE banned = 0 ORDER BY required_job ASC, name ASC");
     if ($query && $query->execute()) {
       $result = $query->get_result();
       while ($row = mysqli_fetch_array($result)) {
@@ -264,7 +280,8 @@ function getSkills($db)
           'cooldown_sec' => intval($row['cooldown_sec']),
           'damage_multiplier' => floatval($row['damage_multiplier']),
           'unlock_cost' => intval($row['unlock_cost']),
-          'required_job' => $row['required_job']
+          'required_job' => $row['required_job'],
+          'required_skills' => $row['required_skills']
         );
       }
       $query->close();

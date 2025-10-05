@@ -189,7 +189,7 @@ function fightMonster($db, $data, $itemDropRate)
       }
       $se->close();
 
-      $sm = $db->prepare("SELECT gm.id, gm.stats, rm.name  
+      $sm = $db->prepare("SELECT gm.id, gm.stats, rm.name, rm.id as resource_id, rm.mp as base_mp, rm.maxmp as base_maxmp  
 				FROM game_monsters gm INNER JOIN resources_monsters rm ON gm.resource_id = rm.id 
 				WHERE gm.room_id = ? AND gm.x = ? AND gm.y = ?");
       $sm->bind_param("iii", $room_id, $player_x, $player_y);
@@ -204,6 +204,9 @@ function fightMonster($db, $data, $itemDropRate)
             $monster_id = intval($rmrow["id"]);
             $monster_stats = $rmrow["stats"];
             $monster_name = $rmrow["name"];
+            $monster_resource_id = intval($rmrow["resource_id"]);
+            $monster_base_mp = intval($rmrow["base_mp"]);
+            $monster_base_maxmp = intval($rmrow["base_maxmp"]);
             break;
           }
 
@@ -231,9 +234,12 @@ function fightMonster($db, $data, $itemDropRate)
           $monster_crt = 5; // base 5% crit chance
           $monster_hp = 1;
           $monster_maxhp = 1;
+          $monster_mp = $monster_base_mp;
+          $monster_maxmp = $monster_base_maxmp;
           $monster_drops = '';
           $monster_gold = 0;
           $monster_exp = 0;
+          $monster_cooldowns = array();
 
           $monster_stats_parts = explode(';', $monster_stats);
           for ($i = 0; $i < count($monster_stats_parts); $i++) {
@@ -258,6 +264,12 @@ function fightMonster($db, $data, $itemDropRate)
             if (str_starts_with($monster_stats_parts[$i], "maxhp=")) {
               $monster_maxhp = intval(explode('=', $monster_stats_parts[$i])[1]);
             }
+            if (str_starts_with($monster_stats_parts[$i], "mp=")) {
+              $monster_mp = intval(explode('=', $monster_stats_parts[$i])[1]);
+            }
+            if (str_starts_with($monster_stats_parts[$i], "maxmp=")) {
+              $monster_maxmp = intval(explode('=', $monster_stats_parts[$i])[1]);
+            }
             if (str_starts_with($monster_stats_parts[$i], "drops=")) {
               $monster_drops = explode('=', $monster_stats_parts[$i])[1];
             }
@@ -267,7 +279,35 @@ function fightMonster($db, $data, $itemDropRate)
             if (str_starts_with($monster_stats_parts[$i], "exp=")) {
               $monster_exp = intval(explode('=', $monster_stats_parts[$i])[1]);
             }
+            // Capture monster cooldowns
+            if (str_starts_with($monster_stats_parts[$i], "cd_")) {
+              $kv = explode('=', $monster_stats_parts[$i]);
+              if (count($kv) == 2) {
+                $monster_cooldowns[$kv[0]] = intval($kv[1]);
+              }
+            }
           }
+          
+          // Load monster skills from database
+          $monster_skills = array();
+          try {
+            $mskill_query = $db->prepare("SELECT ms.skill_id, rs.mp_cost, rs.damage_multiplier, rs.cooldown_sec FROM monster_skills ms INNER JOIN resources_skills rs ON ms.skill_id = rs.skill_id WHERE ms.monster_resource_id = ? AND rs.banned = 0");
+            if ($mskill_query) {
+              $mskill_query->bind_param("i", $monster_resource_id);
+              if ($mskill_query->execute()) {
+                $mskill_result = $mskill_query->get_result();
+                while ($mskill_row = mysqli_fetch_array($mskill_result)) {
+                  $monster_skills[] = array(
+                    'skill_id' => $mskill_row['skill_id'],
+                    'mp_cost' => intval($mskill_row['mp_cost']),
+                    'mult' => floatval($mskill_row['damage_multiplier']),
+                    'cd_sec' => intval($mskill_row['cooldown_sec'])
+                  );
+                }
+              }
+              $mskill_query->close();
+            }
+          } catch (Throwable $_) { }
 
           if ($player_evd + $itemEvd >= $monster_evd) {
             $monster_dodge = 1;
@@ -518,6 +558,9 @@ function fightMonster($db, $data, $itemDropRate)
                   // update monster stats
                   $um = $db->prepare("UPDATE game_monsters SET stats = ? WHERE id = ?");
                   $monster_stats_str = setMonsterStats($monster_hp, $monster_maxhp, $monster_atk, $monster_def, $monster_spd, $monster_evd, $monster_drops, $monster_gold, $monster_exp);
+                  // Append monster MP and cooldowns
+                  $monster_stats_str .= "mp=" . intval($monster_mp) . ";maxmp=" . intval($monster_maxmp) . ";";
+                  foreach ($monster_cooldowns as $k => $v) { $monster_stats_str .= $k . "=" . intval($v) . ";"; }
                   $um->bind_param("si", $monster_stats_str, $monster_id);
                   $um->execute();
                   $um->close();
@@ -526,7 +569,9 @@ function fightMonster($db, $data, $itemDropRate)
                     "id" => $monster_id,
                     "name" => $monster_name,
                     "hp" => $monster_hp,
-                    "maxhp" => $monster_maxhp
+                    "maxhp" => $monster_maxhp,
+                    "mp" => $monster_mp,
+                    "maxmp" => $monster_maxmp
                   );
                 }
               } else {
@@ -538,7 +583,34 @@ function fightMonster($db, $data, $itemDropRate)
 
               if (rand(0, 100) > $player_dodge) {
                 // monster attack
-                $monster_force = $monster_atk + rand(0, $monster_atk);
+                // Monster AI: try to use a skill (30% chance if has MP and skills)
+                $monster_using_skill = false;
+                $monster_skill_name = '';
+                $monster_skill_mult = 1.0;
+                if (count($monster_skills) > 0 && $monster_maxmp > 0 && rand(1, 100) <= 30) {
+                  // Pick a random skill that's off cooldown and affordable
+                  $available_skills = array();
+                  foreach ($monster_skills as $msk) {
+                    $mcd_key = 'cd_' . $msk['skill_id'];
+                    $mcd_until = isset($monster_cooldowns[$mcd_key]) ? intval($monster_cooldowns[$mcd_key]) : 0;
+                    if ($mcd_until <= $now_ts && $monster_mp >= $msk['mp_cost']) {
+                      $available_skills[] = $msk;
+                    }
+                  }
+                  if (count($available_skills) > 0) {
+                    $chosen_skill = $available_skills[array_rand($available_skills)];
+                    $monster_using_skill = true;
+                    $monster_skill_name = $chosen_skill['skill_id'];
+                    $monster_skill_mult = $chosen_skill['mult'];
+                    $monster_mp = max(0, $monster_mp - $chosen_skill['mp_cost']);
+                    $monster_cooldowns['cd_' . $monster_skill_name] = $now_ts + $chosen_skill['cd_sec'];
+                    $result["events"][] = array("t" => "monster_skill_used", "name" => $monster_skill_name, "mp_spent" => $chosen_skill['mp_cost']);
+                    $result["log"][] = $monster_name . " used " . ucfirst(str_replace('_',' ', $monster_skill_name)) . "!";
+                  }
+                }
+                
+                $base_monster_force = $monster_atk + rand(0, $monster_atk);
+                $monster_force = $monster_using_skill ? intval(round($base_monster_force * $monster_skill_mult)) : $base_monster_force;
                 $player_force = ($player_def + $itemDef) + rand(0, ($player_def + $itemDef));
                 $hit = max(0, $monster_force - $player_force);
                 // Monster critical hit check

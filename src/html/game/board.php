@@ -486,6 +486,10 @@
 
 <script src="js/vendor/jquery-2.2.4.min.js"></script>
 <script src="config.js"></script>
+<script>
+  // Set BASE_PATH for client-side URL generation
+  var BASE_PATH = <?= json_encode(base_path('')) ?>;
+</script>
 <!-- Modularized scripts (loaded before game.js) -->
 <script src="js/utils.js"></script>
 <script src="js/assets.js"></script>

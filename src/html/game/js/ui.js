@@ -77,12 +77,14 @@
   }
 
   function gameOver() {
-    var url = "/story/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
     window.location.href = url;
   }
 
   function setGameLink() {
-    var url = "/story/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
     $('#game_link').attr('href', url);
   }
 
@@ -164,12 +166,14 @@
   };
 
   window.UI.gameOver = function () {
-    var url = "/story/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
     window.location.href = url;
   };
 
   window.UI.setGameLink = function () {
-    var url = "/story/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
     $('#game_link').attr('href', url);
   };
 

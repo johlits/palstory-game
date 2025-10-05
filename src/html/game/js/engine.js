@@ -128,7 +128,16 @@
             }
           }
           
-          // Check location type for special borders (only if no monster)
+          // Check if this is the player's current tile (white border - highest priority)
+          if (tileWorldCoords && window.player_x !== undefined && window.player_y !== undefined) {
+            var playerKey = '' + window.player_x + ',' + window.player_y;
+            if (tileWorldCoords === playerKey) {
+              borderColor = '#ffffff'; // White for player's current tile
+              borderWidth = 4;
+            }
+          }
+          
+          // Check location type for special borders (only if no monster or player)
           if (!borderColor && this.location_type) {
             if (this.location_type === 'town') {
               borderColor = '#22c55e'; // Green for towns

@@ -1,7 +1,28 @@
+<?php
+// Increase upload limits for large 3D model files
+ini_set('upload_max_filesize', '50M');
+ini_set('post_max_size', '50M');
+ini_set('max_execution_time', '300');
+
+// Check uploads directory
+$target_dir = "../uploads/";
+if (!file_exists($target_dir)) {
+    echo "Creating uploads directory...<br>";
+    mkdir($target_dir, 0755, true);
+} else {
+    echo "Uploads directory exists.<br>";
+}
+
+// Check if directory is writable
+if (!is_writable($target_dir)) {
+    echo "Error: Uploads directory is not writable. Please check permissions.<br>";
+    die("Directory permissions error.");
+}
+?>
 <html>
 
 <head>
-  <title>Upload</title>
+  <title>Upload Files - Images & 3D Models</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="manifest" href="assets/manifest.json" />
 
@@ -20,43 +41,52 @@
 
 <body>
   <div class="container stack gap-4 p-16">
-    <h1 class="title">Upload image</h1>
+    <h1 class="title">Upload File</h1>
+    <p>Upload images (JPG, PNG, GIF) or 3D models (GLB) for game resources</p>
   <?php
-  $target_dir = "uploads/";
   $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
   $uploadOk = 1;
   $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
-  // Check if image file is a actual image or fake image
+  echo "Target file path: " . $target_file . "<br>";
+  echo "Current working directory: " . getcwd() . "<br>";
+  echo "Uploads directory absolute path: " . realpath($target_dir) . "<br>";
+
+  // Check if image file is a actual image or fake image, or if it's a GLB file
   if (isset($_POST["submit"])) {
-    $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
-    if ($check !== false) {
-      echo "File is an image - " . $check["mime"] . ".";
+    if ($imageFileType == "glb") {
+      echo "File is a 3D model (GLB).<br>";
       $uploadOk = 1;
     } else {
-      echo "File is not an image.";
-      $uploadOk = 0;
+      $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
+      if ($check !== false) {
+        echo "File is an image - " . $check["mime"] . ".<br>";
+        $uploadOk = 1;
+      } else {
+        echo "File is not an image or GLB file.<br>";
+        $uploadOk = 0;
+      }
     }
   }
 
-  // Check if file already exists
-  if (file_exists($target_file)) {
-    echo "Sorry, file already exists.";
-    $uploadOk = 0;
-  }
-
-  // Check file size
-  if ($_FILES["fileToUpload"]["size"] > 500000) {
-    echo "Sorry, your file is too large.";
-    $uploadOk = 0;
-  }
+  // Check if file already exists - REMOVED to allow overwriting
+  // if (file_exists($target_file)) {
+  //   echo "Sorry, file already exists.";
+  //   $uploadOk = 0;
+  // }
 
   // Allow certain file formats
   if (
     $imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-    && $imageFileType != "gif"
+    && $imageFileType != "gif" && $imageFileType != "glb"
   ) {
-    echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+    echo "Sorry, only JPG, JPEG, PNG, GIF & GLB files are allowed.";
+    $uploadOk = 0;
+  }
+
+  // Check file size (only if file type is allowed)
+  if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 50000000) {
+    echo "Sorry, your file is too large. Maximum size is 50MB.";
     $uploadOk = 0;
   }
 

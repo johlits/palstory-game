@@ -30,6 +30,7 @@ require_once "./config.php";
 if (isset($_POST["logout"]) && !empty($_POST['logout'])) {
   $_SESSION['secret'] = '';
 }
+if (isset($_POST["secret"])) {
   $_SESSION['secret'] = $_POST["secret"];
 }
 
@@ -92,6 +93,10 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <span class="muted text-sm">spawns=Slime,Shroom;</span><br/>
           <textarea id="location_stats" name="location_stats" rows="4" cols="50">spawns=</textarea>
           <br />
+          <label for="location_model">Location 3D model (GLB):</label>
+          <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
+          <input type="text" id="location_model" name="location_model" placeholder="location.glb" size="40">
+          <br />
           <button id="location_save" onclick="saveLocation()">Save location</button>
           <span id="location_error" class="text-error"></span>
         </div>
@@ -116,6 +121,10 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <span class="muted text-sm">...;drops=Sword,Shield;</span><br/>
           <textarea id="monster_stats" name="monster_stats" rows="4" cols="50"></textarea>
           <br />
+          <label for="monster_model">Monster 3D model (GLB):</label>
+          <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
+          <input type="text" id="monster_model" name="monster_model" placeholder="monster.glb" size="40">
+          <br />
           <button id="monster_save" onclick="saveMonster()">Save monster</button>
           <span id="monster_error" class="text-error"></span>
         </div>
@@ -139,6 +148,10 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <span><input class="w-150" type="text" id="item_generate_type" name="item_generate_type" placeholder="type"><input class="w-80" type="number" id="item_generate_level" name="item_generate_level" value="1"><button onclick="generateItemStats()">Generate</button></span>
           <textarea id="item_stats" name="item_stats" rows="4" cols="50"></textarea>
           <br />
+          <label for="item_model">Item 3D model (GLB):</label>
+          <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
+          <input type="text" id="item_model" name="item_model" placeholder="item.glb" size="40">
+          <br />
           <button id="item_save" onclick="saveItem()">Save item</button>
           <span id="item_error" class="text-error"></span>
         </div>
@@ -154,43 +167,18 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
         <a class="ylink" href="#monsters_section">Monsters</a>
         <a class="ylink" href="#items_section">Items</a>
 
-        <h2>Images</h2>
+        <h2>Upload Files</h2>
+        <p>Upload images (JPG, PNG, GIF) or 3D models (GLB) for game resources</p>
 
         <form action="createUpload.php" method="post" enctype="multipart/form-data">
-          Select image to upload:
+          Select file to upload:
           <input type="file" name="fileToUpload" id="fileToUpload">
-          <input type="submit" value="Upload Image" name="submit">
+          <input type="submit" value="Upload File" name="submit">
         </form>
 
-        <table>
-          <tr>
-            <th>Link</th>
-            <th>Name</th>
-          </tr>
-
-          <?
-          $log_directory = 'uploads';
-
-          $results_array = array();
-
-          if (is_dir($log_directory)) {
-            if ($handle = opendir($log_directory)) {
-              //Notice the parentheses I added:
-              while (($file = readdir($handle)) !== FALSE) {
-                $results_array[] = $file;
-              }
-              closedir($handle);
-            }
-          }
-
-          //Output findings
-          for ($i = 0; $i < count($results_array); $i++) {
-            if ($i > 1) {
-              echo '<tr><td><a href="' . getImageUrl($results_array[$i]) . '" target="_blank">View</a></td><td>' . $results_array[$i] . '</td></tr>';
-            }
-          }
-          ?>
-        </table>
+        <div class="mt-16">
+          <a href="files.php" class="nes-btn" target="_blank">View All Uploaded Files</a>
+        </div>
 
         <h2 id="locations_section">Locations</h2>
         <table>
@@ -201,6 +189,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
             <th>From</th>
             <th>To</th>
             <th>Stats</th>
+            <th>3D Model</th>
             <th>Banned</th>
           </tr>
           <?php
@@ -230,11 +219,18 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                     <div title="<? echo $row[6]; ?>"><? echo substr($row[6], 0, 10) . "..."; ?></div>
                   </td>
                   <td>
-                    <? echo $row[7] == 1 ? "yes" : "no"; ?>
-                    <? if ($row[7] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
+                    <? if (!empty($row[7])) { ?>
+                      <a href="<?= getImageUrl($row[7]) ?>" target="_blank">View 3D</a>
+                    <? } else { ?>
+                      <span class="muted">None</span>
+                    <? } ?>
+                  </td>
+                  <td>
+                    <? echo $row[8] == 1 ? "yes" : "no"; ?>
+                    <? if ($row[8] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banLocation(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
-                    <? if ($row[7] == 1 && $_SESSION['secret'] == admin_game()) { ?>
+                    <? if ($row[8] == 1 && $_SESSION['secret'] == admin_game()) { ?>
                       <button onclick="deleteLocation(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Delete</button>
                     <? } ?>
                   </td>
@@ -252,6 +248,12 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <tr>
             <th>Name</th>
             <th>Image</th>
+            <th>Description</th>
+            <th>Stats</th>
+            <th>3D Model</th>
+            <th>Banned</th>
+          </tr>
+          <?php
           $selectstmt = $db->prepare("SELECT * FROM resources_monsters");
           $arr = array();
           if ($selectstmt->execute()) {
@@ -272,15 +274,27 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                     <div title="<? echo $row[4]; ?>"><? echo substr($row[4], 0, 10) . "..."; ?></div>
                   </td>
                   <td>
-                    <? echo $row[5] == 1 ? "yes" : "no"; ?>
-                    <? if ($row[5] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
+                    <? if (!empty($row[5])) { ?>
+                      <a href="<?= getImageUrl($row[5]) ?>" target="_blank">View 3D</a>
+                    <? } else { ?>
+                      <span class="muted">None</span>
+                    <? } ?>
+                  </td>
+                  <td>
+                    <? echo $row[6] == 1 ? "yes" : "no"; ?>
+                    <? if ($row[6] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banMonster(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
-                    <? if ($row[5] == 1 && $_SESSION['secret'] == admin_game()) { ?>
+                    <? if ($row[6] == 1 && $_SESSION['secret'] == admin_game()) { ?>
                       <button onclick="deleteMonster(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Delete</button>
                     <? } ?>
                   </td>
                 </tr>
+              <?
+              }
+            }
+          }
+          $selectstmt->close();
           ?>
         </table>
 
@@ -291,6 +305,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
             <th>Image</th>
             <th>Description</th>
             <th>Stats</th>
+            <th>3D Model</th>
             <th>Banned</th>
           </tr>
           <?php
@@ -314,11 +329,18 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                     <div title="<? echo $row[4]; ?>"><? echo substr($row[4], 0, 10) . "..."; ?></div>
                   </td>
                   <td>
-                    <? echo $row[5] == 1 ? "yes" : "no"; ?>
-                    <? if ($row[5] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
+                    <? if (!empty($row[5])) { ?>
+                      <a href="<?= getImageUrl($row[5]) ?>" target="_blank">View 3D</a>
+                    <? } else { ?>
+                      <span class="muted">None</span>
+                    <? } ?>
+                  </td>
+                  <td>
+                    <? echo $row[6] == 1 ? "yes" : "no"; ?>
+                    <? if ($row[6] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banItem(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
-                    <? if ($row[5] == 1 && $_SESSION['secret'] == admin_game()) { ?>
+                    <? if ($row[6] == 1 && $_SESSION['secret'] == admin_game()) { ?>
                       <button onclick="deleteItem(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Delete</button>
                     <? } ?>
                   </td>

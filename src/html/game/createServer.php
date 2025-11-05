@@ -167,6 +167,7 @@ function itemName($db, $data, $min_name_length, $max_name_length, $min_image_len
   $item_image = clean($data['item_image']);
   $item_description = clean($data['item_description']);
   $item_stats = clean($data['item_stats']);
+  $item_model = clean($data['item_model']);
 
   $selectstmt = $db->prepare("SELECT * 
 				FROM resources_items 
@@ -273,15 +274,23 @@ function itemName($db, $data, $min_name_length, $max_name_length, $min_image_len
     $row_count = mysqli_num_rows($result);
 
     if ($row_count == 0) {
-      $insertstmt = $db->prepare("INSERT INTO resources_items(name, image, description, stats) 
-				VALUES(?, ?, ?, ?)");
-      $insertstmt->bind_param("ssss", $item_name, $item_image, $item_description, $item_stats);
+      // Create new item
+      $insertstmt = $db->prepare("INSERT INTO resources_items(name, image, description, stats, model_3d) 
+				VALUES(?, ?, ?, ?, ?)");
+      $insertstmt->bind_param("sssss", $item_name, $item_image, $item_description, $item_stats, $item_model);
       if ($insertstmt->execute()) {
         array_push($arr, "ok");
       }
       $insertstmt->close();
     } else {
-      array_push($arr, "already exists");
+      // Update existing item
+      $updatestmt = $db->prepare("UPDATE resources_items SET image = ?, description = ?, stats = ?, model_3d = ? 
+				WHERE name = ?");
+      $updatestmt->bind_param("sssss", $item_image, $item_description, $item_stats, $item_model, $item_name);
+      if ($updatestmt->execute()) {
+        array_push($arr, "ok");
+      }
+      $updatestmt->close();
     }
   }
   $selectstmt->close();
@@ -293,6 +302,7 @@ function monsterName($db, $data, $min_name_length, $max_name_length, $min_image_
   $monster_image = clean($data['monster_image']);
   $monster_description = clean($data['monster_description']);
   $monster_stats = clean($data['monster_stats']);
+  $monster_model = clean($data['monster_model']);
 
   $selectstmt = $db->prepare("SELECT * 
 				FROM resources_monsters 
@@ -555,15 +565,23 @@ function monsterName($db, $data, $min_name_length, $max_name_length, $min_image_
     $row_count = mysqli_num_rows($result);
 
     if ($row_count == 0) {
-      $insertstmt = $db->prepare("INSERT INTO resources_monsters(name, image, description, stats) 
-				VALUES(?, ?, ?, ?)");
-      $insertstmt->bind_param("ssss", $monster_name, $monster_image, $monster_description, $monster_stats);
+      // Create new monster
+      $insertstmt = $db->prepare("INSERT INTO resources_monsters(name, image, description, stats, model_3d) 
+				VALUES(?, ?, ?, ?, ?)");
+      $insertstmt->bind_param("sssss", $monster_name, $monster_image, $monster_description, $monster_stats, $monster_model);
       if ($insertstmt->execute()) {
         array_push($arr, "ok");
       }
       $insertstmt->close();
     } else {
-      array_push($arr, "already exists");
+      // Update existing monster
+      $updatestmt = $db->prepare("UPDATE resources_monsters SET image = ?, description = ?, stats = ?, model_3d = ? 
+				WHERE name = ?");
+      $updatestmt->bind_param("sssss", $monster_image, $monster_description, $monster_stats, $monster_model, $monster_name);
+      if ($updatestmt->execute()) {
+        array_push($arr, "ok");
+      }
+      $updatestmt->close();
     }
   }
   $selectstmt->close();
@@ -577,6 +595,7 @@ function locationName($db, $data, $min_name_length, $max_name_length, $min_image
   $location_from = clean($data['location_from']);
   $location_to = clean($data['location_to']);
   $location_stats = clean($data['location_stats']);
+  $location_model = clean($data['location_model']);
 
   $selectstmt = $db->prepare("SELECT * 
 				FROM resources_locations 
@@ -713,9 +732,10 @@ function locationName($db, $data, $min_name_length, $max_name_length, $min_image
     $row_count = mysqli_num_rows($result);
 
     if ($row_count == 0) {
-      $insertstmt = $db->prepare("INSERT INTO resources_locations(name, image, description, lvl_from, lvl_to, stats) 
-				VALUES(?, ?, ?, ?, ?, ?)");
-      $insertstmt->bind_param("sssiis", $location_name, $location_image, $location_description, $location_from, $location_to, $location_stats);
+      // Create new location
+      $insertstmt = $db->prepare("INSERT INTO resources_locations(name, image, description, lvl_from, lvl_to, stats, model_3d) 
+				VALUES(?, ?, ?, ?, ?, ?, ?)");
+      $insertstmt->bind_param("sssiiss", $location_name, $location_image, $location_description, $location_from, $location_to, $location_stats, $location_model);
       if ($insertstmt->execute()) {
         array_push($arr, "ok");
       }
@@ -724,7 +744,14 @@ function locationName($db, $data, $min_name_length, $max_name_length, $min_image
       }
       $insertstmt->close();
     } else {
-      array_push($arr, "already exists");
+      // Update existing location
+      $updatestmt = $db->prepare("UPDATE resources_locations SET image = ?, description = ?, lvl_from = ?, lvl_to = ?, stats = ?, model_3d = ? 
+				WHERE name = ?");
+      $updatestmt->bind_param("sssiiss", $location_image, $location_description, $location_from, $location_to, $location_stats, $location_model, $location_name);
+      if ($updatestmt->execute()) {
+        array_push($arr, "ok");
+      }
+      $updatestmt->close();
     }
   }
   $selectstmt->close();

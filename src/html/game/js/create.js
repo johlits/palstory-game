@@ -135,7 +135,7 @@ var saveItem = function () {
   console.log($("#item_stats").val());
 
   var requestData = $(
-    "#item_name,#item_image,#item_description,#item_stats"
+    "#item_name,#item_image,#item_description,#item_stats,#item_model,#item_edit_id"
   ).serialize();
 
   $.ajax({
@@ -171,7 +171,7 @@ var saveMonster = function () {
   console.log($("#monster_stats").val());
 
   var requestData = $(
-    "#monster_name,#monster_image,#monster_description,#monster_stats"
+    "#monster_name,#monster_image,#monster_description,#monster_stats,#monster_model,#monster_edit_id"
   ).serialize();
 
   $.ajax({
@@ -209,7 +209,7 @@ var saveLocation = function () {
   console.log($("#location_stats").val());
 
   var requestData = $(
-    "#location_name,#location_image,#location_description,#location_from,#location_to,#location_stats"
+    "#location_name,#location_image,#location_description,#location_from,#location_to,#location_stats,#location_model,#location_edit_id"
   ).serialize();
 
   $.ajax({
@@ -235,4 +235,43 @@ var saveLocation = function () {
       $("#location_save").prop("disabled", false);
     },
   });
+};
+
+// Edit functions to populate forms with existing data
+var editLocation = function (id, name, image, description, from, to, stats, model) {
+  $("#location_edit_id").val(id);
+  $("#location_name").val(name);
+  $("#location_image").val(image);
+  $("#location_description").val(description);
+  $("#location_from").val(from);
+  $("#location_to").val(to);
+  $("#location_stats").val(stats);
+  $("#location_model").val(model || '');
+  $("#location_save").text("Update Location");
+  // Scroll to form
+  $("#create_location_section")[0].scrollIntoView({ behavior: 'smooth' });
+};
+
+var editMonster = function (id, name, image, description, stats, model) {
+  $("#monster_edit_id").val(id);
+  $("#monster_name").val(name);
+  $("#monster_image").val(image);
+  $("#monster_description").val(description);
+  $("#monster_stats").val(stats);
+  $("#monster_model").val(model || '');
+  $("#monster_save").text("Update Monster");
+  // Scroll to form
+  $("#create_monsters_section")[0].scrollIntoView({ behavior: 'smooth' });
+};
+
+var editItem = function (id, name, image, description, stats, model) {
+  $("#item_edit_id").val(id);
+  $("#item_name").val(name);
+  $("#item_image").val(image);
+  $("#item_description").val(description);
+  $("#item_stats").val(stats);
+  $("#item_model").val(model || '');
+  $("#item_save").text("Update Item");
+  // Scroll to form
+  $("#create_items_section")[0].scrollIntoView({ behavior: 'smooth' });
 };

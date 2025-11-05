@@ -20,6 +20,47 @@ require_once "./config.php";
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body.create-page {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      overflow-x: hidden;
+    }
+    .create-page .container {
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+    .create-page .right {
+      overflow-x: auto;
+    }
+    .create-page table {
+      max-width: 100%;
+      table-layout: fixed;
+      word-wrap: break-word;
+    }
+    .create-page th, .create-page td {
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+    .create-page button {
+      margin: 2px;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .create-page button[onclick*="edit"] {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .create-page button[onclick*="edit"]:hover {
+      background-color: #45a049;
+    }
+  </style>
 </head>
 
 <body id="top" class="create-page">
@@ -96,6 +137,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <label for="location_model">Location 3D model (GLB):</label>
           <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
           <input type="text" id="location_model" name="location_model" placeholder="location.glb" size="40">
+          <input type="hidden" id="location_edit_id" name="location_edit_id" value="">
           <br />
           <button id="location_save" onclick="saveLocation()">Save location</button>
           <span id="location_error" class="text-error"></span>
@@ -124,6 +166,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <label for="monster_model">Monster 3D model (GLB):</label>
           <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
           <input type="text" id="monster_model" name="monster_model" placeholder="monster.glb" size="40">
+          <input type="hidden" id="monster_edit_id" name="monster_edit_id" value="">
           <br />
           <button id="monster_save" onclick="saveMonster()">Save monster</button>
           <span id="monster_error" class="text-error"></span>
@@ -151,6 +194,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <label for="item_model">Item 3D model (GLB):</label>
           <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
           <input type="text" id="item_model" name="item_model" placeholder="item.glb" size="40">
+          <input type="hidden" id="item_edit_id" name="item_edit_id" value="">
           <br />
           <button id="item_save" onclick="saveItem()">Save item</button>
           <span id="item_error" class="text-error"></span>
@@ -227,6 +271,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   </td>
                   <td>
                     <? echo $row[8] == 1 ? "yes" : "no"; ?>
+                    <button onclick="editLocation(<? echo $row[0]; ?>, '<? echo $row[1]; ?>', '<? echo $row[2]; ?>', '<? echo $row[3]; ?>', '<? echo $row[4]; ?>', '<? echo $row[5]; ?>', '<? echo $row[6]; ?>', '<? echo $row[7]; ?>')">Edit</button>
                     <? if ($row[8] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banLocation(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
@@ -282,6 +327,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   </td>
                   <td>
                     <? echo $row[6] == 1 ? "yes" : "no"; ?>
+                    <button onclick="editMonster(<? echo $row[0]; ?>, '<? echo $row[1]; ?>', '<? echo $row[2]; ?>', '<? echo $row[3]; ?>', '<? echo $row[4]; ?>', '<? echo $row[5]; ?>')">Edit</button>
                     <? if ($row[6] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banMonster(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
@@ -337,6 +383,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   </td>
                   <td>
                     <? echo $row[6] == 1 ? "yes" : "no"; ?>
+                    <button onclick="editItem(<? echo $row[0]; ?>, '<? echo $row[1]; ?>', '<? echo $row[2]; ?>', '<? echo $row[3]; ?>', '<? echo $row[4]; ?>', '<? echo $row[5]; ?>')">Edit</button>
                     <? if ($row[6] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banItem(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>

@@ -60,10 +60,138 @@ require_once "./config.php";
     .create-page button[onclick*="edit"]:hover {
       background-color: #45a049;
     }
+    .sql-field {
+      font-family: 'Courier New', monospace !important;
+      background-color: #f8f9fa !important;
+      border: 1px solid #dee2e6 !important;
+      border-radius: 4px !important;
+      padding: 8px !important;
+      font-size: 12px !important;
+      line-height: 1.4 !important;
+      color: #495057 !important;
+      resize: vertical !important;
+    }
+    .sql-field:focus {
+      outline: none !important;
+      border-color: #007bff !important;
+      box-shadow: 0 0 0 2px rgba(0,123,255,0.25) !important;
+    }
+    .sql-modal {
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.85);
+    }
+    .sql-modal-content {
+      background-color: #1a1a1a;
+      margin: 5% auto;
+      padding: 0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 700px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .sql-modal-header {
+      padding: 16px 20px;
+      background-color: #2d2d2d;
+      color: #fff;
+      border-radius: 8px 8px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #444;
+    }
+    .sql-modal-header h3 {
+      margin: 0;
+      font-size: 20px;
+      color: #fff;
+    }
+    .sql-modal-close {
+      color: #aaa;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 20px;
+      transition: color 0.2s;
+    }
+    .sql-modal-close:hover,
+    .sql-modal-close:focus {
+      color: #fff;
+    }
+    .sql-modal-body {
+      padding: 20px;
+      background-color: #1a1a1a;
+    }
+    .sql-modal-body p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #aaa;
+    }
+    .sql-modal-body textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background-color: #0d0d0d !important;
+      color: #0f0 !important;
+      border: 1px solid #333 !important;
+    }
+    .sql-modal-footer {
+      padding: 16px 20px;
+      background-color: #2d2d2d;
+      border-radius: 0 0 8px 8px;
+      text-align: right;
+      border-top: 1px solid #444;
+    }
+    .sql-modal-footer button {
+      padding: 8px 16px;
+      margin-left: 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .sql-modal-footer button:first-child {
+      background-color: #28a745;
+      color: white;
+    }
+    .sql-modal-footer button:first-child:hover {
+      background-color: #218838;
+      box-shadow: 0 2px 8px rgba(40,167,69,0.4);
+    }
+    .sql-modal-footer button:last-child {
+      background-color: #444;
+      color: white;
+    }
+    .sql-modal-footer button:last-child:hover {
+      background-color: #555;
+    }
   </style>
 </head>
 
 <body id="top" class="create-page">
+
+<!-- SQL Modal -->
+<div id="sqlModal" class="sql-modal" style="display: none;">
+  <div class="sql-modal-content">
+    <div class="sql-modal-header">
+      <h3>Generated SQL</h3>
+      <span class="sql-modal-close" onclick="closeSqlModal()">&times;</span>
+    </div>
+    <div class="sql-modal-body">
+      <p>Copy this SQL to your migration file:</p>
+      <textarea id="sqlModalText" class="sql-field" rows="8" readonly></textarea>
+    </div>
+    <div class="sql-modal-footer">
+      <button onclick="copySqlToClipboard()">Copy to Clipboard</button>
+      <button onclick="closeSqlModal()">Close</button>
+    </div>
+  </div>
+</div>
 
 <div class="create-toplink"><a class="ylink" href="#top">Top</a></div>
 

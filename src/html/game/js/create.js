@@ -4,10 +4,16 @@ var banItem = function (id, secret) {
     type: "get",
     dataType: "json",
     success: function (response, status, http) {
-      window.location.reload();
+      var sql = response[0];
+      if (sql.startsWith("UPDATE")) {
+        showSqlModal(sql);
+      } else {
+        alert("Error: " + sql);
+      }
     },
     error: function (http, status, error) {
       console.error(error);
+      alert("Error: " + error);
     },
   });
 }
@@ -18,10 +24,16 @@ var banMonster = function (id, secret) {
     type: "get",
     dataType: "json",
     success: function (response, status, http) {
-      window.location.reload();
+      var sql = response[0];
+      if (sql.startsWith("UPDATE")) {
+        showSqlModal(sql);
+      } else {
+        alert("Error: " + sql);
+      }
     },
     error: function (http, status, error) {
       console.error(error);
+      alert("Error: " + error);
     },
   });
 }
@@ -32,10 +44,16 @@ var banLocation = function (id, secret) {
     type: "get",
     dataType: "json",
     success: function (response, status, http) {
-      window.location.reload();
+      var sql = response[0];
+      if (sql.startsWith("UPDATE")) {
+        showSqlModal(sql);
+      } else {
+        alert("Error: " + sql);
+      }
     },
     error: function (http, status, error) {
       console.error(error);
+      alert("Error: " + error);
     },
   });
 }
@@ -46,10 +64,16 @@ var deleteItem = function (id, secret) {
     type: "get",
     dataType: "json",
     success: function (response, status, http) {
-      window.location.reload();
+      var sql = response[0];
+      if (sql.startsWith("DELETE")) {
+        showSqlModal(sql);
+      } else {
+        alert("Error: " + sql);
+      }
     },
     error: function (http, status, error) {
       console.error(error);
+      alert("Error: " + error);
     },
   });
 }
@@ -60,10 +84,16 @@ var deleteMonster = function (id, secret) {
     type: "get",
     dataType: "json",
     success: function (response, status, http) {
-      window.location.reload();
+      var sql = response[0];
+      if (sql.startsWith("DELETE")) {
+        showSqlModal(sql);
+      } else {
+        alert("Error: " + sql);
+      }
     },
     error: function (http, status, error) {
       console.error(error);
+      alert("Error: " + error);
     },
   });
 }
@@ -74,10 +104,16 @@ var deleteLocation = function (id, secret) {
     type: "get",
     dataType: "json",
     success: function (response, status, http) {
-      window.location.reload();
+      var sql = response[0];
+      if (sql.startsWith("DELETE")) {
+        showSqlModal(sql);
+      } else {
+        alert("Error: " + sql);
+      }
     },
     error: function (http, status, error) {
       console.error(error);
+      alert("Error: " + error);
     },
   });
 }
@@ -146,14 +182,24 @@ var saveItem = function () {
     success: function (response, status, http) {
       console.log(response);
       var code = response[0];
-      if (code == "ok") {
-        window.location.reload();
+      var trimmedCode = code ? code.trim() : "";
+      if (trimmedCode.startsWith("INSERT") || trimmedCode.startsWith("UPDATE")) {
+        showSqlModal(trimmedCode);
+        $("#item_error").text("");
+        // Clear form fields for new entry
+        $("#item_name").val("");
+        $("#item_image").val("");
+        $("#item_description").val("");
+        $("#item_stats").val("");
+        $("#item_model").val("");
+        $("#item_edit_id").val("");
+        $("#item_save").text("Save item");
       }
       else {
         console.error(code);
         $("#item_error").text("ERROR: " + code);
-        $("#item_save").prop("disabled", false);
       }
+      $("#item_save").prop("disabled", false);
     },
     error: function (http, status, error) {
       console.error(error);
@@ -182,14 +228,24 @@ var saveMonster = function () {
     success: function (response, status, http) {
       console.log(response);
       var code = response[0];
-      if (code == "ok") {
-        window.location.reload();
+      var trimmedCode = code ? code.trim() : "";
+      if (trimmedCode.startsWith("INSERT") || trimmedCode.startsWith("UPDATE")) {
+        showSqlModal(trimmedCode);
+        $("#monster_error").text("");
+        // Clear form fields for new entry
+        $("#monster_name").val("");
+        $("#monster_image").val("");
+        $("#monster_description").val("");
+        $("#monster_stats").val("");
+        $("#monster_model").val("");
+        $("#monster_edit_id").val("");
+        $("#monster_save").text("Save monster");
       }
       else {
         console.error(code);
         $("#monster_error").text("ERROR: " + code);
-        $("#monster_save").prop("disabled", false);
       }
+      $("#monster_save").prop("disabled", false);
     },
     error: function (http, status, error) {
       console.error(error);
@@ -220,14 +276,26 @@ var saveLocation = function () {
     success: function (response, status, http) {
       console.log(response);
       var code = response[0];
-      if (code == "ok") {
-        window.location.reload();
+      var trimmedCode = code ? code.trim() : "";
+      if (trimmedCode.startsWith("INSERT") || trimmedCode.startsWith("UPDATE")) {
+        showSqlModal(trimmedCode);
+        $("#location_error").text("");
+        // Clear form fields for new entry
+        $("#location_name").val("");
+        $("#location_image").val("");
+        $("#location_description").val("");
+        $("#location_from").val("1");
+        $("#location_to").val("5");
+        $("#location_stats").val("spawns=");
+        $("#location_model").val("");
+        $("#location_edit_id").val("");
+        $("#location_save").text("Save location");
       }
       else {
         console.error(code);
         $("#location_error").text("ERROR: " + code);
-        $("#location_save").prop("disabled", false);
       }
+      $("#location_save").prop("disabled", false);
     },
     error: function (http, status, error) {
       console.error(error);
@@ -275,3 +343,32 @@ var editItem = function (id, name, image, description, stats, model) {
   // Scroll to form
   $("#create_items_section")[0].scrollIntoView({ behavior: 'smooth' });
 };
+
+// Modal functions
+var showSqlModal = function (sql) {
+  $("#sqlModalText").val(sql);
+  $("#sqlModal").fadeIn(200);
+};
+
+var closeSqlModal = function () {
+  $("#sqlModal").fadeOut(200);
+};
+
+var copySqlToClipboard = function () {
+  var sqlText = $("#sqlModalText").val();
+  navigator.clipboard.writeText(sqlText).then(function() {
+    alert("SQL copied to clipboard!");
+  }).catch(function(err) {
+    // Fallback for older browsers
+    $("#sqlModalText").select();
+    document.execCommand('copy');
+    alert("SQL copied to clipboard!");
+  });
+};
+
+// Close modal when clicking outside of it
+$(document).on('click', '#sqlModal', function(e) {
+  if (e.target.id === 'sqlModal') {
+    closeSqlModal();
+  }
+});

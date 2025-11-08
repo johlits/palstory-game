@@ -3,159 +3,93 @@ header("Access-Control-Allow-Origin: *");
 
 require_once "./config.php";
 
+// DISABLED: Database alteration functions
+// These functions are kept for reference but disabled to prevent database changes
+
+// Modified to generate SQL instead of executing
 function deleteItem($db, $data) {
   $resource_id = intval(clean($data['delete_item']));
   $secret = clean($data['secret']);
   $arr = array();
   if ($secret == admin_game()) {
-    $selectstmt = $db->prepare("SELECT * FROM resources_items WHERE banned = 1 
-				AND id = ?");
-    $selectstmt->bind_param("i", $resource_id);
-    if ($selectstmt->execute()) {
-      $result = $selectstmt->get_result();
-      $rc = mysqli_num_rows($result);
-      if ($rc > 0) {
-        $deletestmt = $db->prepare("DELETE FROM resources_items 
-				WHERE id = ?");
-        $deletestmt->bind_param("i", $resource_id);
-        if ($deletestmt->execute()) {
-          array_push($arr, "ok");
-        } else {
-          array_push($arr, "err");
-        }
-        $deletestmt->close();
-      }
-      else {
-        array_push($arr, "not found");
-      }
-    }
-    $selectstmt->close();
+    // Generate DELETE SQL
+    $sql = "DELETE FROM resources_items WHERE id = " . $resource_id . ";";
+    array_push($arr, $sql);
   } else {
     array_push($arr, "unauthorized");
   }
   return $arr;
 }
 
+// Modified to generate SQL instead of executing
 function deleteMonster($db, $data) {
   $resource_id = intval(clean($data['delete_monster']));
   $secret = clean($data['secret']);
   $arr = array();
   if ($secret == admin_game()) {
-    $selectstmt = $db->prepare("SELECT * FROM resources_monsters WHERE banned = 1 
-				AND id = ?");
-    $selectstmt->bind_param("i", $resource_id);
-    if ($selectstmt->execute()) {
-      $result = $selectstmt->get_result();
-      $rc = mysqli_num_rows($result);
-      if ($rc > 0) {
-        $deletestmt = $db->prepare("DELETE FROM resources_monsters 
-				WHERE id = ?");
-        $deletestmt->bind_param("i", $resource_id);
-        if ($deletestmt->execute()) {
-          array_push($arr, "ok");
-        } else {
-          array_push($arr, "err");
-        }
-        $deletestmt->close();
-      }
-      else {
-        array_push($arr, "not found");
-      }
-    }
-    $selectstmt->close();
+    // Generate DELETE SQL
+    $sql = "DELETE FROM resources_monsters WHERE id = " . $resource_id . ";";
+    array_push($arr, $sql);
   } else {
     array_push($arr, "unauthorized");
   }
   return $arr;
 }
 
+// Modified to generate SQL instead of executing
 function deleteLocation($db, $data) {
   $resource_id = intval(clean($data['delete_location']));
   $secret = clean($data['secret']);
   $arr = array();
   if ($secret == admin_game()) {
-    $selectstmt = $db->prepare("SELECT * FROM resources_locations WHERE banned = 1 
-				AND id = ?");
-    $selectstmt->bind_param("i", $resource_id);
-    if ($selectstmt->execute()) {
-      $result = $selectstmt->get_result();
-      $rc = mysqli_num_rows($result);
-      if ($rc > 0) {
-        $deletestmt = $db->prepare("DELETE FROM resources_locations 
-				WHERE id = ?");
-        $deletestmt->bind_param("i", $resource_id);
-        if ($deletestmt->execute()) {
-          array_push($arr, "ok");
-        } else {
-          array_push($arr, "err");
-        }
-        $deletestmt->close();
-      }
-      else {
-        array_push($arr, "not found");
-      }
-    }
-    $selectstmt->close();
+    // Generate DELETE SQL
+    $sql = "DELETE FROM resources_locations WHERE id = " . $resource_id . ";";
+    array_push($arr, $sql);
   } else {
     array_push($arr, "unauthorized");
   }
   return $arr;
 }
 
+// Modified to generate SQL instead of executing
 function banItem($db, $data) {
   $resource_id = intval(clean($data['ban_item']));
   $secret = clean($data['secret']);
   $arr = array();
   if ($secret == super_admin_game()) {
-    $updatestmt = $db->prepare("UPDATE resources_items SET banned = 1 
-				WHERE id = ?");
-    $updatestmt->bind_param("i", $resource_id);
-    if ($updatestmt->execute()) {
-      array_push($arr, "ok");
-    } else {
-      array_push($arr, "err");
-    }
-    $updatestmt->close();
+    // Generate UPDATE SQL
+    $sql = "UPDATE resources_items SET banned = 1 WHERE id = " . $resource_id . ";";
+    array_push($arr, $sql);
   } else {
     array_push($arr, "unauthorized");
   }
   return $arr;
 }
 
+// Modified to generate SQL instead of executing
 function banMonster($db, $data) {
   $resource_id = intval(clean($data['ban_monster']));
   $secret = clean($data['secret']);
   $arr = array();
   if ($secret == super_admin_game()) {
-    $updatestmt = $db->prepare("UPDATE resources_monsters SET banned = 1 
-				WHERE id = ?");
-    $updatestmt->bind_param("i", $resource_id);
-    if ($updatestmt->execute()) {
-      array_push($arr, "ok");
-    } else {
-      array_push($arr, "err");
-    }
-    $updatestmt->close();
+    // Generate UPDATE SQL
+    $sql = "UPDATE resources_monsters SET banned = 1 WHERE id = " . $resource_id . ";";
+    array_push($arr, $sql);
   } else {
     array_push($arr, "unauthorized");
   }
   return $arr;
 }
 
+// Modified to generate SQL instead of executing
 function banLocation($db, $data) {
   $resource_id = intval(clean($data['ban_location']));
   $secret = clean($data['secret']);
   $arr = array();
   if ($secret == super_admin_game()) {
-    $updatestmt = $db->prepare("UPDATE resources_locations SET banned = 1 
-				WHERE id = ?");
-    $updatestmt->bind_param("i", $resource_id);
-    if ($updatestmt->execute()) {
-      array_push($arr, "ok");
-    } else {
-      array_push($arr, "err");
-    }
-    $updatestmt->close();
+    // Generate UPDATE SQL
+    $sql = "UPDATE resources_locations SET banned = 1 WHERE id = " . $resource_id . ";";
+    array_push($arr, $sql);
   } else {
     array_push($arr, "unauthorized");
   }
@@ -267,30 +201,42 @@ function itemName($db, $data, $min_name_length, $max_name_length, $min_image_len
     array_push($arr, "image name too long (max " . $max_image_length . ")");
   } else if (strlen($item_description) < $min_description_length) {
     array_push($arr, "description too short (min " . $min_description_length . ")");
-  } else if (!file_exists('uploads/' . $item_image)) {
-    array_push($arr, "no such image");
   } else if ($selectstmt->execute()) {
     $result = $selectstmt->get_result();
     $row_count = mysqli_num_rows($result);
 
     if ($row_count == 0) {
-      // Create new item
-      $insertstmt = $db->prepare("INSERT INTO resources_items(name, image, description, stats, model_3d) 
-				VALUES(?, ?, ?, ?, ?)");
-      $insertstmt->bind_param("sssss", $item_name, $item_image, $item_description, $item_stats, $item_model);
-      if ($insertstmt->execute()) {
-        array_push($arr, "ok");
-      }
-      $insertstmt->close();
+      // Generate INSERT SQL for new item
+      $escaped_name = mysqli_real_escape_string($db, $item_name);
+      $escaped_image = mysqli_real_escape_string($db, $item_image);
+      $escaped_description = mysqli_real_escape_string($db, $item_description);
+      $escaped_stats = mysqli_real_escape_string($db, $item_stats);
+      $escaped_model = mysqli_real_escape_string($db, $item_model);
+      
+      $sql = "INSERT INTO resources_items(name, image, description, stats, model_3d) VALUES('" . 
+             $escaped_name . "', '" . 
+             $escaped_image . "', '" . 
+             $escaped_description . "', '" . 
+             $escaped_stats . "', '" . 
+             $escaped_model . "');";
+      
+      array_push($arr, $sql);
     } else {
-      // Update existing item
-      $updatestmt = $db->prepare("UPDATE resources_items SET image = ?, description = ?, stats = ?, model_3d = ? 
-				WHERE name = ?");
-      $updatestmt->bind_param("sssss", $item_image, $item_description, $item_stats, $item_model, $item_name);
-      if ($updatestmt->execute()) {
-        array_push($arr, "ok");
-      }
-      $updatestmt->close();
+      // Generate UPDATE SQL for existing item
+      $escaped_name = mysqli_real_escape_string($db, $item_name);
+      $escaped_image = mysqli_real_escape_string($db, $item_image);
+      $escaped_description = mysqli_real_escape_string($db, $item_description);
+      $escaped_stats = mysqli_real_escape_string($db, $item_stats);
+      $escaped_model = mysqli_real_escape_string($db, $item_model);
+      
+      $sql = "UPDATE resources_items SET image = '" . 
+             $escaped_image . "', description = '" . 
+             $escaped_description . "', stats = '" . 
+             $escaped_stats . "', model_3d = '" . 
+             $escaped_model . "' WHERE name = '" . 
+             $escaped_name . "';";
+      
+      array_push($arr, $sql);
     }
   }
   $selectstmt->close();
@@ -558,30 +504,42 @@ function monsterName($db, $data, $min_name_length, $max_name_length, $min_image_
     array_push($arr, "image name too long (max " . $max_image_length . ")");
   } else if (strlen($monster_description) < $min_description_length) {
     array_push($arr, "description too short (min " . $min_description_length . ")");
-  } else if (!file_exists('uploads/' . $monster_image)) {
-    array_push($arr, "no such image");
   } else if ($selectstmt->execute()) {
     $result = $selectstmt->get_result();
     $row_count = mysqli_num_rows($result);
 
     if ($row_count == 0) {
-      // Create new monster
-      $insertstmt = $db->prepare("INSERT INTO resources_monsters(name, image, description, stats, model_3d) 
-				VALUES(?, ?, ?, ?, ?)");
-      $insertstmt->bind_param("sssss", $monster_name, $monster_image, $monster_description, $monster_stats, $monster_model);
-      if ($insertstmt->execute()) {
-        array_push($arr, "ok");
-      }
-      $insertstmt->close();
+      // Generate INSERT SQL for new monster
+      $escaped_name = mysqli_real_escape_string($db, $monster_name);
+      $escaped_image = mysqli_real_escape_string($db, $monster_image);
+      $escaped_description = mysqli_real_escape_string($db, $monster_description);
+      $escaped_stats = mysqli_real_escape_string($db, $monster_stats);
+      $escaped_model = mysqli_real_escape_string($db, $monster_model);
+      
+      $sql = "INSERT INTO resources_monsters(name, image, description, stats, model_3d) VALUES('" . 
+             $escaped_name . "', '" . 
+             $escaped_image . "', '" . 
+             $escaped_description . "', '" . 
+             $escaped_stats . "', '" . 
+             $escaped_model . "');";
+      
+      array_push($arr, $sql);
     } else {
-      // Update existing monster
-      $updatestmt = $db->prepare("UPDATE resources_monsters SET image = ?, description = ?, stats = ?, model_3d = ? 
-				WHERE name = ?");
-      $updatestmt->bind_param("sssss", $monster_image, $monster_description, $monster_stats, $monster_model, $monster_name);
-      if ($updatestmt->execute()) {
-        array_push($arr, "ok");
-      }
-      $updatestmt->close();
+      // Generate UPDATE SQL for existing monster
+      $escaped_name = mysqli_real_escape_string($db, $monster_name);
+      $escaped_image = mysqli_real_escape_string($db, $monster_image);
+      $escaped_description = mysqli_real_escape_string($db, $monster_description);
+      $escaped_stats = mysqli_real_escape_string($db, $monster_stats);
+      $escaped_model = mysqli_real_escape_string($db, $monster_model);
+      
+      $sql = "UPDATE resources_monsters SET image = '" . 
+             $escaped_image . "', description = '" . 
+             $escaped_description . "', stats = '" . 
+             $escaped_stats . "', model_3d = '" . 
+             $escaped_model . "' WHERE name = '" . 
+             $escaped_name . "';";
+      
+      array_push($arr, $sql);
     }
   }
   $selectstmt->close();
@@ -711,8 +669,6 @@ function locationName($db, $data, $min_name_length, $max_name_length, $min_image
     array_push($arr, "unknown monster " . $unknown_monster);
   } else if (isset($invalid_monster)) {
     array_push($arr, "overpowered monster " . $invalid_monster);
-  } else if (!isset($spawns)) {
-    array_push($arr, "spawns must be set");
   } else if (strlen($location_name) < $min_name_length) {
     array_push($arr, "name too short (min " . $min_name_length . ")");
   } else if (strlen($location_name) > $max_name_length) {
@@ -725,33 +681,50 @@ function locationName($db, $data, $min_name_length, $max_name_length, $min_image
     array_push($arr, "description too short (min " . $min_description_length . ")");
   } else if ((int) $location_from > (int) $location_to) {
     array_push($arr, "invalid level range");
-  } else if (!file_exists('uploads/' . $location_image)) {
-    array_push($arr, "no such image");
   } else if ($selectstmt->execute()) {
     $result = $selectstmt->get_result();
     $row_count = mysqli_num_rows($result);
 
     if ($row_count == 0) {
-      // Create new location
-      $insertstmt = $db->prepare("INSERT INTO resources_locations(name, image, description, lvl_from, lvl_to, stats, model_3d) 
-				VALUES(?, ?, ?, ?, ?, ?, ?)");
-      $insertstmt->bind_param("sssiiss", $location_name, $location_image, $location_description, $location_from, $location_to, $location_stats, $location_model);
-      if ($insertstmt->execute()) {
-        array_push($arr, "ok");
-      }
-      else {
-        array_push($arr, "err");
-      }
-      $insertstmt->close();
+      // Generate INSERT SQL for new location
+      $escaped_name = mysqli_real_escape_string($db, $location_name);
+      $escaped_image = mysqli_real_escape_string($db, $location_image);
+      $escaped_description = mysqli_real_escape_string($db, $location_description);
+      $escaped_from = mysqli_real_escape_string($db, $location_from);
+      $escaped_to = mysqli_real_escape_string($db, $location_to);
+      $escaped_stats = mysqli_real_escape_string($db, $location_stats);
+      $escaped_model = mysqli_real_escape_string($db, $location_model);
+      
+      $sql = "INSERT INTO resources_locations(name, image, description, lvl_from, lvl_to, stats, model_3d) VALUES('" . 
+             $escaped_name . "', '" . 
+             $escaped_image . "', '" . 
+             $escaped_description . "', " . 
+             $escaped_from . ", " . 
+             $escaped_to . ", '" . 
+             $escaped_stats . "', '" . 
+             $escaped_model . "');";
+      
+      array_push($arr, $sql);
     } else {
-      // Update existing location
-      $updatestmt = $db->prepare("UPDATE resources_locations SET image = ?, description = ?, lvl_from = ?, lvl_to = ?, stats = ?, model_3d = ? 
-				WHERE name = ?");
-      $updatestmt->bind_param("sssiiss", $location_image, $location_description, $location_from, $location_to, $location_stats, $location_model, $location_name);
-      if ($updatestmt->execute()) {
-        array_push($arr, "ok");
-      }
-      $updatestmt->close();
+      // Generate UPDATE SQL for existing location
+      $escaped_name = mysqli_real_escape_string($db, $location_name);
+      $escaped_image = mysqli_real_escape_string($db, $location_image);
+      $escaped_description = mysqli_real_escape_string($db, $location_description);
+      $escaped_from = mysqli_real_escape_string($db, $location_from);
+      $escaped_to = mysqli_real_escape_string($db, $location_to);
+      $escaped_stats = mysqli_real_escape_string($db, $location_stats);
+      $escaped_model = mysqli_real_escape_string($db, $location_model);
+      
+      $sql = "UPDATE resources_locations SET image = '" . 
+             $escaped_image . "', description = '" . 
+             $escaped_description . "', lvl_from = " . 
+             $escaped_from . ", lvl_to = " . 
+             $escaped_to . ", stats = '" . 
+             $escaped_stats . "', model_3d = '" . 
+             $escaped_model . "' WHERE name = '" . 
+             $escaped_name . "';";
+      
+      array_push($arr, $sql);
     }
   }
   $selectstmt->close();
@@ -767,6 +740,7 @@ $min_description_length = 16;
 $min_image_length = 1;
 $max_image_length = 64;
 
+// All endpoints now generate SQL instead of executing database operations
 if (isset($data['delete_item'])) {
   echo json_encode(deleteItem($db, $data));
 } else if (isset($data['delete_monster'])) {

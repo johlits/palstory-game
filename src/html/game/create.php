@@ -340,7 +340,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
         <a class="ylink" href="#items_section">Items</a>
 
         <h2>Upload Files</h2>
-        <p>Upload images (JPG, PNG, GIF) or 3D models (GLB) for game resources</p>
+        <p>Upload images or 3D models for game resources</p>
 
         <form action="createUpload.php" method="post" enctype="multipart/form-data">
           Select file to upload:

@@ -40,7 +40,7 @@ $model3d_base_dir = $MODEL3D_BASE_PATH; // private 3D assets (absolute path)
   // Determine target directory based on file extension
   $original_name = basename($_FILES["fileToUpload"]["name"]);
   $extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-  $is3d = in_array($extension, ["glb", "fbx", "obj", "gltf"]);
+  $is3d = in_array($extension, ["glb", "fbx", "obj", "gltf", "zip"]);
 
   $target_dir = $is3d ? $model3d_base_dir : $image_base_dir;
   $target_file = rtrim($target_dir, '/\\') . DIRECTORY_SEPARATOR . $original_name;
@@ -64,10 +64,10 @@ $model3d_base_dir = $MODEL3D_BASE_PATH; // private 3D assets (absolute path)
       die("Directory permissions error.");
   }
 
-  // Check if image file is an actual image or one of the supported 3D formats
+  // Check if image file is an actual image or one of the supported 3D/ZIP formats
   if (isset($_POST["submit"])) {
-    if (in_array($imageFileType, ["glb", "fbx", "obj", "gltf"])) {
-      echo "File is a 3D model (" . strtoupper($imageFileType) . ").<br>";
+    if (in_array($imageFileType, ["glb", "fbx", "obj", "gltf", "zip"])) {
+      echo "File is a 3D model/archive (" . strtoupper($imageFileType) . ").<br>";
       $uploadOk = 1;
     } else {
       $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
@@ -87,13 +87,13 @@ $model3d_base_dir = $MODEL3D_BASE_PATH; // private 3D assets (absolute path)
   //   $uploadOk = 0;
   // }
 
-  // Allow certain file formats (images + 3D models)
+  // Allow certain file formats (images + 3D models/archives)
   if (
     $imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
     && $imageFileType != "gif" && $imageFileType != "glb" && $imageFileType != "fbx"
-    && $imageFileType != "obj" && $imageFileType != "gltf"
+    && $imageFileType != "obj" && $imageFileType != "gltf" && $imageFileType != "zip"
   ) {
-    echo "Sorry, only JPG, JPEG, PNG, GIF, GLB, FBX, OBJ & GLTF files are allowed.";
+    echo "Sorry, only JPG, JPEG, PNG, GIF, GLB, FBX, OBJ, GLTF & ZIP files are allowed.";
     $uploadOk = 0;
   }
 

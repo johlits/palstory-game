@@ -349,7 +349,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
         </form>
 
         <div class="mt-16">
-          <a href="files.php" class="nes-btn" target="_blank">View All Uploaded Files</a>
+          <a href="files.php" class="nes-btn" target="_blank">View All Uploaded Images</a>
         </div>
 
         <h2 id="locations_section">Locations</h2>

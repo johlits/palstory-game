@@ -32,8 +32,8 @@ require_once "./config.php";
 </div>
 
 <div class="center-abs box" style="max-width: 90vw; max-height: 80vh; overflow-y: auto;">
-  <h1>Uploaded Files</h1>
-  <p>All uploaded images and 3D models for game resources</p>
+  <h1>Uploaded Images</h1>
+  <p>All uploaded images for game resources</p>
   
   <div style="overflow-x: auto;">
     <table style="min-width: 600px; width: 100%;">
@@ -60,24 +60,20 @@ require_once "./config.php";
     // Sort files alphabetically
     sort($results_array);
 
-    // Output files
+    // Output image files only
     for ($i = 0; $i < count($results_array); $i++) {
       if ($i > 1) { // Skip . and .. directories
         $file_path = $log_directory . '/' . $results_array[$i];
-        $file_size = filesize($file_path);
         $file_ext = strtolower(pathinfo($results_array[$i], PATHINFO_EXTENSION));
-        
-        // Determine file type
-        if (in_array($file_ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-          $file_type = 'Image';
-          $preview = '<a href="' . getImageUrl($results_array[$i]) . '" target="_blank"><img src="' . getImageUrl($results_array[$i]) . '" width="50" height="50" style="object-fit: cover;"></a>';
-        } else if ($file_ext == 'glb') {
-          $file_type = '3D Model';
-          $preview = '<a href="' . getImageUrl($results_array[$i]) . '" target="_blank">🎮 3D</a>';
-        } else {
-          $file_type = 'File';
-          $preview = '<a href="' . getImageUrl($results_array[$i]) . '" target="_blank">📄 File</a>';
+
+        // Skip non-image files
+        if (!in_array($file_ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+          continue;
         }
+
+        $file_size = filesize($file_path);
+        $file_type = 'Image';
+        $preview = '<a href="' . getImageUrl($results_array[$i]) . '" target="_blank"><img src="' . getImageUrl($results_array[$i]) . '" width="50" height="50" style="object-fit: cover;"></a>';
         
         // Format file size
         if ($file_size < 1024) {

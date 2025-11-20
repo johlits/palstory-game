@@ -42,7 +42,7 @@ if (!is_writable($target_dir)) {
 <body>
   <div class="container stack gap-4 p-16">
     <h1 class="title">Upload File</h1>
-    <p>Upload images (JPG, PNG, GIF) or 3D models (GLB) for game resources</p>
+    <p>Upload images (JPG, PNG, GIF) or 3D models (GLB, FBX, OBJ, GLTF) for game resources</p>
   <?php
   $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
   $uploadOk = 1;
@@ -52,10 +52,10 @@ if (!is_writable($target_dir)) {
   echo "Current working directory: " . getcwd() . "<br>";
   echo "Uploads directory absolute path: " . realpath($target_dir) . "<br>";
 
-  // Check if image file is a actual image or fake image, or if it's a GLB file
+  // Check if image file is an actual image or one of the supported 3D formats
   if (isset($_POST["submit"])) {
-    if ($imageFileType == "glb") {
-      echo "File is a 3D model (GLB).<br>";
+    if (in_array($imageFileType, ["glb", "fbx", "obj", "gltf"])) {
+      echo "File is a 3D model (" . strtoupper($imageFileType) . ").<br>";
       $uploadOk = 1;
     } else {
       $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
@@ -63,7 +63,7 @@ if (!is_writable($target_dir)) {
         echo "File is an image - " . $check["mime"] . ".<br>";
         $uploadOk = 1;
       } else {
-        echo "File is not an image or GLB file.<br>";
+        echo "File is not an image or supported 3D model file.<br>";
         $uploadOk = 0;
       }
     }
@@ -75,12 +75,13 @@ if (!is_writable($target_dir)) {
   //   $uploadOk = 0;
   // }
 
-  // Allow certain file formats
+  // Allow certain file formats (images + 3D models)
   if (
     $imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-    && $imageFileType != "gif" && $imageFileType != "glb"
+    && $imageFileType != "gif" && $imageFileType != "glb" && $imageFileType != "fbx"
+    && $imageFileType != "obj" && $imageFileType != "gltf"
   ) {
-    echo "Sorry, only JPG, JPEG, PNG, GIF & GLB files are allowed.";
+    echo "Sorry, only JPG, JPEG, PNG, GIF, GLB, FBX, OBJ & GLTF files are allowed.";
     $uploadOk = 0;
   }
 

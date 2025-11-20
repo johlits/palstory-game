@@ -4,20 +4,11 @@ ini_set('upload_max_filesize', '50M');
 ini_set('post_max_size', '50M');
 ini_set('max_execution_time', '300');
 
-// Check uploads directory
-$target_dir = "../uploads/";
-if (!file_exists($target_dir)) {
-    echo "Creating uploads directory...<br>";
-    mkdir($target_dir, 0755, true);
-} else {
-    echo "Uploads directory exists.<br>";
-}
+require_once "./config.php";
 
-// Check if directory is writable
-if (!is_writable($target_dir)) {
-    echo "Error: Uploads directory is not writable. Please check permissions.<br>";
-    die("Directory permissions error.");
-}
+// Define base directories for uploads
+$image_base_dir = "../uploads/"; // public 2D assets
+$model3d_base_dir = $MODEL3D_BASE_PATH; // private 3D assets (absolute path)
 ?>
 <html>
 
@@ -44,13 +35,34 @@ if (!is_writable($target_dir)) {
     <h1 class="title">Upload File</h1>
     <p>Upload images (JPG, PNG, GIF) or 3D models (GLB, FBX, OBJ, GLTF) for game resources</p>
   <?php
-  $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
   $uploadOk = 1;
-  $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+  // Determine target directory based on file extension
+  $original_name = basename($_FILES["fileToUpload"]["name"]);
+  $extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+  $is3d = in_array($extension, ["glb", "fbx", "obj", "gltf"]);
+
+  $target_dir = $is3d ? $model3d_base_dir : $image_base_dir;
+  $target_file = rtrim($target_dir, '/\\') . DIRECTORY_SEPARATOR . $original_name;
+  $imageFileType = $extension;
 
   echo "Target file path: " . $target_file . "<br>";
   echo "Current working directory: " . getcwd() . "<br>";
   echo "Uploads directory absolute path: " . realpath($target_dir) . "<br>";
+
+  // Ensure target directory exists
+  if (!file_exists($target_dir)) {
+      echo "Creating uploads directory...<br>";
+      mkdir($target_dir, 0755, true);
+  } else {
+      echo "Uploads directory exists.<br>";
+  }
+
+  // Check if directory is writable
+  if (!is_writable($target_dir)) {
+      echo "Error: Uploads directory is not writable. Please check permissions.<br>";
+      die("Directory permissions error.");
+  }
 
   // Check if image file is an actual image or one of the supported 3D formats
   if (isset($_POST["submit"])) {

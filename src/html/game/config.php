@@ -2,6 +2,7 @@
 // Configuration
 $IMAGE_BASE_URL = "https://palplanner.com/story/uploads/";
 $NEWS_URL = "https://palplanner.com/story/news/index.php";
+$MODEL3D_BASE_PATH = "https://palplanner.com/story/uploads/";
 
 // Helper to read environment variables reliably in Apache/PHP
 function env_val($key, $default = null) {

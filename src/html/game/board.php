@@ -3,7 +3,7 @@
 
 <head>
   <title>Play</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <link rel="manifest" href="assets/manifest.json" />
   <link rel="apple-touch-icon" sizes="512x512" href="assets/android/android-launchericon-512-512.png">
   <link rel="apple-touch-icon" sizes="192x192" href="assets/android/android-launchericon-192-192.png">
@@ -104,6 +104,39 @@
     /* Hide menu backgrounds when game is active */
     body:not(.menu-active) #bg-anim { display: none; }
     body:not(.menu-active) #bg-stars { display: none; }
+
+    /* Orientation overlay to block gameplay in portrait */
+    #rotate-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 2147483647; /* above all in-page z-index values */
+      padding: 1rem;
+    }
+    #rotate-overlay-inner {
+      max-width: 22rem;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    #rotate-overlay h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+    /* When orientation is blocked, also visually suppress dialogs/UI layers */
+    body.orientation-blocked dialog {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    body.orientation-blocked .box {
+      pointer-events: none;
+    }
   </style>
   
   <?php require_once 'config.php'; ?>
@@ -115,6 +148,16 @@
 </head>
 
 <body class="game-page" onload="init()">
+
+  <div id="rotate-overlay">
+    <div id="rotate-overlay-inner">
+      <h2>Rotate your device</h2>
+      <p>
+        For the best PalStory experience, please rotate your device to
+        <strong>landscape</strong> before continuing.
+      </p>
+    </div>
+  </div>
 
   <div id="bg-anim" aria-hidden="true"></div>
   <canvas id="bg-stars" aria-hidden="true"></canvas>
@@ -515,6 +558,25 @@
 <script src="js/app.js"></script>
 
 <script>
+  // Orientation overlay: block gameplay in portrait
+  (function () {
+    function isLandscape() {
+      return window.innerWidth > window.innerHeight;
+    }
+
+    function updateRotateOverlay() {
+      var overlay = document.getElementById('rotate-overlay');
+      if (!overlay) return;
+      var landscape = isLandscape();
+      overlay.style.display = landscape ? 'none' : 'flex';
+      document.body.classList.toggle('orientation-blocked', !landscape);
+    }
+
+    window.addEventListener('resize', updateRotateOverlay);
+    window.addEventListener('orientationchange', updateRotateOverlay);
+    window.addEventListener('load', updateRotateOverlay);
+  })();
+
   // Toggle animated background and canvas fade during menu (create room/player) views
   (function () {
     var body = document.body;

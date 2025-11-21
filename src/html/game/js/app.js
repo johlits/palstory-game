@@ -33,8 +33,13 @@
       }, false);
     }
 
-    // Keep canvas full-screen and scale entities on viewport/orientation changes
-    window.addEventListener('resize', window.App.handleResize, { passive: true });
+    // Keep canvas full-screen and scale entities on viewport/orientation changes.
+    // On mobile, repeated resizes during rotation can corrupt the canvas layout,
+    // so we only auto-resize on non-mobile user agents.
+    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    if (!isMobile) {
+      window.addEventListener('resize', window.App.handleResize, { passive: true });
+    }
 
     // Pause/resume idle players polling on tab visibility changes
     document.addEventListener('visibilitychange', function () {

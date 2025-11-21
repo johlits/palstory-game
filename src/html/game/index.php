@@ -39,9 +39,43 @@ FROM resources_locations");
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/effects.css">
   
+  <style>
+    #rotate-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 9999;
+      padding: 1rem;
+    }
+    #rotate-overlay-inner {
+      max-width: 22rem;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    #rotate-overlay h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+  </style>
 </head>
 
 <body class="start-page" style="--start-bg: url('<? echo getImageUrl($bg); ?>')">
+
+  <div id="rotate-overlay">
+    <div id="rotate-overlay-inner">
+      <h2>Rotate your device</h2>
+      <p>
+        For the best PalStory experience, please rotate your device to
+        <strong>landscape</strong> before starting the game.
+      </p>
+    </div>
+  </div>
 
   <!-- Decorative background overlays -->
   <div id="bg-particles-back" aria-hidden="true"></div>
@@ -112,8 +146,39 @@ FROM resources_locations");
 <script>window.jQuery || document.write('<script src="js/vendor/jquery-2.2.4.min.js"><\\/script>')</script>
 <script>
   var BASE_PATH = <?= json_encode(base_path('')) ?>;
+  var PALSTORY_PENDING_START = false;
+
+  function isLandscape() {
+    return window.innerWidth > window.innerHeight;
+  }
+
+  function updateRotateOverlay() {
+    var overlay = document.getElementById('rotate-overlay');
+    if (!overlay) return;
+    if (isLandscape()) {
+      overlay.style.display = 'none';
+    } else {
+      overlay.style.display = 'flex';
+    }
+  }
+
+  function tryEnterGame() {
+    var room = $("#room_name").val();
+    var player = $("#player_name").val();
+    if (!room || !player) {
+      return;
+    }
+    if (!isLandscape()) {
+      // Show overlay and wait for rotation; we remember intent via PALSTORY_PENDING_START
+      updateRotateOverlay();
+      return;
+    }
+    window.location = BASE_PATH + "/game/board.php?room=" + room + "&player=" + player;
+  }
+
   function login() {
-    window.location = BASE_PATH + "/game/board.php?room=" + $("#room_name").val() + "&player=" + $("#player_name").val();
+    PALSTORY_PENDING_START = true;
+    tryEnterGame();
   }
 
   document.getElementById("room_name").addEventListener("keypress", function (event) {
@@ -184,5 +249,20 @@ FROM resources_locations");
     // Pure CSS implementation with optimized performance
 
   }); 
+
+  // Orientation gate: only allow entering the game in landscape
+  updateRotateOverlay();
+  window.addEventListener('resize', function() {
+    updateRotateOverlay();
+    if (PALSTORY_PENDING_START && isLandscape()) {
+      tryEnterGame();
+    }
+  });
+  window.addEventListener('orientationchange', function() {
+    updateRotateOverlay();
+    if (PALSTORY_PENDING_START && isLandscape()) {
+      tryEnterGame();
+    }
+  });
 
 </script>

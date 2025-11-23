@@ -399,7 +399,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   </td>
                   <td>
                     <? echo $row[8] == 1 ? "yes" : "no"; ?>
-                    <button onclick="editLocation(<? echo $row[0]; ?>, '<? echo $row[1]; ?>', '<? echo $row[2]; ?>', '<? echo $row[3]; ?>', '<? echo $row[4]; ?>', '<? echo $row[5]; ?>', '<? echo $row[6]; ?>', '<? echo $row[7]; ?>')">Edit</button>
+                    <button onclick='editLocation(<?= (int)$row[0] ?>, <?= json_encode($row[1]) ?>, <?= json_encode($row[2]) ?>, <?= json_encode($row[3]) ?>, <?= json_encode($row[4]) ?>, <?= json_encode($row[5]) ?>, <?= json_encode($row[6]) ?>, <?= json_encode($row[7]) ?>)'>Edit</button>
                     <? if ($row[8] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banLocation(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
@@ -455,7 +455,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   </td>
                   <td>
                     <? echo $row[6] == 1 ? "yes" : "no"; ?>
-                    <button onclick="editMonster(<? echo $row[0]; ?>, '<? echo $row[1]; ?>', '<? echo $row[2]; ?>', '<? echo $row[3]; ?>', '<? echo $row[4]; ?>', '<? echo $row[5]; ?>')">Edit</button>
+                    <button onclick='editMonster(<?= (int)$row[0] ?>, <?= json_encode($row[1]) ?>, <?= json_encode($row[2]) ?>, <?= json_encode($row[3]) ?>, <?= json_encode($row[4]) ?>, <?= json_encode($row[5]) ?>)'>Edit</button>
                     <? if ($row[6] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banMonster(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
@@ -511,7 +511,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
                   </td>
                   <td>
                     <? echo $row[6] == 1 ? "yes" : "no"; ?>
-                    <button onclick="editItem(<? echo $row[0]; ?>, '<? echo $row[1]; ?>', '<? echo $row[2]; ?>', '<? echo $row[3]; ?>', '<? echo $row[4]; ?>', '<? echo $row[5]; ?>')">Edit</button>
+                    <button onclick='editItem(<?= (int)$row[0] ?>, <?= json_encode($row[1]) ?>, <?= json_encode($row[2]) ?>, <?= json_encode($row[3]) ?>, <?= json_encode($row[4]) ?>, <?= json_encode($row[5]) ?>)'>Edit</button>
                     <? if ($row[6] == 0 && $_SESSION['secret'] == super_admin_game()) { ?>
                       <button onclick="banItem(<? echo $row[0]; ?>, '<? echo $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>

@@ -271,7 +271,7 @@
       var tile = (window.locationsDict && window.locationsDict[key]) ? window.locationsDict[key] : null;
       var gstats = (tile && typeof tile.gstats !== 'undefined') ? ('' + tile.gstats) : undefined;
       var gatherable = /(^|;)gather=1(;|$)/.test(gstats);
-      if (gatherable) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; return; }
+      if (gatherable) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') window.UI.updateLocationActionsButton(); return; }
       // If gstats explicitly says not gatherable, keep hidden and do not fetch
       if (typeof gstats === 'string' && /(^|;)gather=0(;|$)/.test(gstats)) { return; }
       // If we truly don't have gstats yet (undefined), fetch the current tile to update it
@@ -291,7 +291,7 @@
             try { tile.gstats = (typeof resp[0].gstats !== 'undefined') ? (resp[0].gstats || '') : ''; } catch(_) { tile.gstats = ''; }
             try { tile.location_type = (typeof resp[0].location_type !== 'undefined') ? (resp[0].location_type || '') : ''; } catch(_) { tile.location_type = ''; }
             var gs2 = tile.gstats || '';
-            if (/(^|;)gather=1(;|$)/.test('' + gs2)) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; }
+            if (/(^|;)gather=1(;|$)/.test('' + gs2)) { if (btn.classList) btn.classList.remove('hidden'); else btn.style.display = ''; if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') window.UI.updateLocationActionsButton(); }
           }
         }).catch(function(_){});
       }
@@ -454,6 +454,7 @@
         if (btn.classList) btn.classList.add('hidden');
         else btn.style.display = 'none';
       }
+      if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') window.UI.updateLocationActionsButton();
     } catch(_) {}
   };
 
@@ -513,6 +514,7 @@
         if (btn.classList) btn.classList.add('hidden');
         else btn.style.display = 'none';
       }
+      if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') window.UI.updateLocationActionsButton();
     } catch(_) {}
   };
 
@@ -532,6 +534,7 @@
         if (btn.classList) btn.classList.add('hidden');
         else btn.style.display = 'none';
       }
+      if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') window.UI.updateLocationActionsButton();
     } catch(_) {}
   };
 
@@ -558,6 +561,10 @@
       }
       if (window.Locations && typeof window.Locations.updateShopButton === 'function') {
         window.Locations.updateShopButton(px, py);
+      }
+      // Update the Actions button visibility
+      if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') {
+        window.UI.updateLocationActionsButton();
       }
     } catch(e) {
       console.error('Error updating current tile:', e);

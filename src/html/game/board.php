@@ -426,17 +426,22 @@
     </div>
 </div>
 
-<div class="box">
+<div class="box location-actions-bar">
   <button id="locationInfoDisabledBtn" type="button" class="nes-btn is-disabled hidden">Info</button>
   <button id="locationInfoBtn" type="button" class="nes-btn" onclick="UI.toggleLocationInfo()">Info</button>
   <button id="locationStatsDisabledBtn" type="button" class="nes-btn is-disabled hidden">Stats</button>
   <button id="locationStatsPrimaryBtn" type="button" class="nes-btn is-primary" onclick="UI.toggleLocationStats()">Stats</button>
   <button id="moveDisabledBtn" type="button" class="nes-btn is-disabled">Move</button>
   <button id="moveSuccessBtn" type="button" class="nes-btn is-success" onclick="Movement.move(window.moveDirection)">Move</button>
-  <button id="gatherBtn" type="button" class="nes-btn hidden" onclick="Locations.gather()">Gather</button>
-  <button id="restBtn" type="button" class="nes-btn is-warning hidden" onclick="Locations.rest()">Rest</button>
-  <button id="respawnBtn" type="button" class="nes-btn is-primary hidden" onclick="Locations.setRespawn()">Set Respawn</button>
-  <button id="shopBtn" type="button" class="nes-btn is-success hidden" onclick="Shop.open()">Shop</button>
+  <div id="locationActionsMenu" class="dropup-container">
+    <button id="locationActionsBtn" type="button" class="nes-btn hidden" onclick="UI.toggleLocationActions()">Actions</button>
+    <div id="locationActionsDropup" class="dropup-menu hidden">
+      <button id="gatherBtn" type="button" class="nes-btn hidden" onclick="Locations.gather(); UI.closeLocationActions();">Gather</button>
+      <button id="restBtn" type="button" class="nes-btn is-warning hidden" onclick="Locations.rest(); UI.closeLocationActions();">Rest</button>
+      <button id="respawnBtn" type="button" class="nes-btn is-primary hidden" onclick="Locations.setRespawn(); UI.closeLocationActions();">Set Respawn</button>
+      <button id="shopBtn" type="button" class="nes-btn is-success hidden" onclick="Shop.open(); UI.closeLocationActions();">Shop</button>
+    </div>
+  </div>
 </div>
   </div>
 

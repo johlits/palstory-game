@@ -664,6 +664,56 @@
     updateLocationContainers();
   };
 
+  // Location actions drop-up menu
+  window.UI.toggleLocationActions = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var menu = document.getElementById('locationActionsDropup');
+    if (!menu) return;
+    if (menu.classList.contains('hidden')) {
+      menu.classList.remove('hidden');
+      // Close menu when clicking outside
+      setTimeout(function() {
+        document.addEventListener('click', window.UI._closeLocationActionsOnClickOutside);
+      }, 0);
+    } else {
+      menu.classList.add('hidden');
+      document.removeEventListener('click', window.UI._closeLocationActionsOnClickOutside);
+    }
+  };
+  window.UI.closeLocationActions = function () {
+    var menu = document.getElementById('locationActionsDropup');
+    if (menu) menu.classList.add('hidden');
+    document.removeEventListener('click', window.UI._closeLocationActionsOnClickOutside);
+  };
+  window.UI._closeLocationActionsOnClickOutside = function (e) {
+    var container = document.getElementById('locationActionsMenu');
+    if (container && !container.contains(e.target)) {
+      window.UI.closeLocationActions();
+    }
+  };
+  // Update Actions button visibility based on whether any action buttons are visible
+  window.UI.updateLocationActionsButton = function () {
+    try {
+      var gatherBtn = document.getElementById('gatherBtn');
+      var restBtn = document.getElementById('restBtn');
+      var respawnBtn = document.getElementById('respawnBtn');
+      var shopBtn = document.getElementById('shopBtn');
+      var actionsBtn = document.getElementById('locationActionsBtn');
+      if (!actionsBtn) return;
+      // Check if any action button is visible (not hidden)
+      var anyVisible = [gatherBtn, restBtn, respawnBtn, shopBtn].some(function(btn) {
+        return btn && !btn.classList.contains('hidden');
+      });
+      if (anyVisible) {
+        actionsBtn.classList.remove('hidden');
+      } else {
+        actionsBtn.classList.add('hidden');
+        // Also close the menu if open
+        window.UI.closeLocationActions();
+      }
+    } catch(_) {}
+  };
+
   window.UI.toggleItemsTable = function () {
     try { playSound(getImageUrl("click.mp3")); } catch (_) {}
     if (window.itemToggle == 0) {

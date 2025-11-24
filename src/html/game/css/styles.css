@@ -622,3 +622,43 @@ dialog::backdrop{ background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
 .pulse{
   animation: pulse 2s ease-in-out infinite;
 }
+
+/* Location actions drop-up menu */
+.location-actions-bar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.dropup-container{
+  position: relative;
+  display: inline-block;
+}
+.dropup-menu{
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 6px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+  z-index: 100;
+  animation: dropupFadeIn 0.15s ease-out;
+}
+.dropup-menu.hidden{
+  display: none;
+}
+.dropup-menu button{
+  width: 100%;
+  text-align: left;
+}
+@keyframes dropupFadeIn{
+  from{ opacity: 0; transform: translateY(8px); }
+  to{ opacity: 1; transform: translateY(0); }
+}

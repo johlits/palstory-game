@@ -262,9 +262,8 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <span class="muted text-sm">spawns=Slime,Shroom;</span><br/>
           <textarea id="location_stats" name="location_stats" rows="4" cols="50">spawns=</textarea>
           <br />
-          <label for="location_model">Location 3D model (GLB, FBX, OBJ, GLTF):</label>
-          <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
-          <input type="text" id="location_model" name="location_model" placeholder="location.glb" size="40">
+          <label for="location_model">Location 3D model info:</label>
+          <input type="text" id="location_model" name="location_model" size="40">
           <input type="hidden" id="location_edit_id" name="location_edit_id" value="">
           <br />
           <button id="location_save" onclick="saveLocation()">Save location</button>
@@ -291,9 +290,8 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <span class="muted text-sm">...;drops=Sword,Shield;</span><br/>
           <textarea id="monster_stats" name="monster_stats" rows="4" cols="50"></textarea>
           <br />
-          <label for="monster_model">Monster 3D model (GLB, FBX, OBJ, GLTF):</label>
-          <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
-          <input type="text" id="monster_model" name="monster_model" placeholder="monster.glb" size="40">
+          <label for="monster_model">Monster 3D model info:</label>
+          <input type="text" id="monster_model" name="monster_model" size="40">
           <input type="hidden" id="monster_edit_id" name="monster_edit_id" value="">
           <br />
           <button id="monster_save" onclick="saveMonster()">Save monster</button>
@@ -319,9 +317,8 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
           <span><input class="w-150" type="text" id="item_generate_type" name="item_generate_type" placeholder="type"><input class="w-80" type="number" id="item_generate_level" name="item_generate_level" value="1"><button onclick="generateItemStats()">Generate</button></span>
           <textarea id="item_stats" name="item_stats" rows="4" cols="50"></textarea>
           <br />
-          <label for="item_model">Item 3D model (GLB, FBX, OBJ, GLTF):</label>
-          <span class="muted text-sm">Optional - for future 3D visualization</span><br/>
-          <input type="text" id="item_model" name="item_model" placeholder="item.glb" size="40">
+          <label for="item_model">Item 3D model info:</label>
+          <input type="text" id="item_model" name="item_model" size="40">
           <input type="hidden" id="item_edit_id" name="item_edit_id" value="">
           <br />
           <button id="item_save" onclick="saveItem()">Save item</button>

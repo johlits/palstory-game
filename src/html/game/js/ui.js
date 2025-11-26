@@ -698,10 +698,11 @@
       var restBtn = document.getElementById('restBtn');
       var respawnBtn = document.getElementById('respawnBtn');
       var shopBtn = document.getElementById('shopBtn');
+      var storageBtn = document.getElementById('storageBtn');
       var actionsBtn = document.getElementById('locationActionsBtn');
       if (!actionsBtn) return;
       // Check if any action button is visible (not hidden)
-      var anyVisible = [gatherBtn, restBtn, respawnBtn, shopBtn].some(function(btn) {
+      var anyVisible = [gatherBtn, restBtn, respawnBtn, shopBtn, storageBtn].some(function(btn) {
         return btn && !btn.classList.contains('hidden');
       });
       if (anyVisible) {

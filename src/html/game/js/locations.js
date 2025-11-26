@@ -538,6 +538,26 @@
     } catch(_) {}
   };
 
+  // Update storage button visibility based on location type
+  window.Locations.updateStorageButton = function(x, y) {
+    try {
+      var key = '' + x + ',' + y;
+      var loc = window.locationsDict[key];
+      var btn = document.getElementById('storageBtn');
+      if (!btn) return;
+      
+      // Show storage button only at towns
+      if (loc && loc.location_type && loc.location_type === 'town') {
+        if (btn.classList) btn.classList.remove('hidden');
+        else btn.style.display = '';
+      } else {
+        if (btn.classList) btn.classList.add('hidden');
+        else btn.style.display = 'none';
+      }
+      if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') window.UI.updateLocationActionsButton();
+    } catch(_) {}
+  };
+
   // Update all location-related UI elements for current tile
   window.Locations.updateCurrentTile = function(x, y) {
     try {
@@ -561,6 +581,9 @@
       }
       if (window.Locations && typeof window.Locations.updateShopButton === 'function') {
         window.Locations.updateShopButton(px, py);
+      }
+      if (window.Locations && typeof window.Locations.updateStorageButton === 'function') {
+        window.Locations.updateStorageButton(px, py);
       }
       // Update the Actions button visibility
       if (window.UI && typeof window.UI.updateLocationActionsButton === 'function') {

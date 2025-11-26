@@ -18,6 +18,7 @@ require_once __DIR__ . '/server/movement.php';
 require_once __DIR__ . '/server/combat.php';
 require_once __DIR__ . '/server/skills.php';
 require_once __DIR__ . '/server/shop.php';
+require_once __DIR__ . '/server/storage.php';
 
 // API
 
@@ -97,6 +98,12 @@ if (isset($data['get_room'])) {
   echo json_encode(buyItem($db, $data));
 } else if (isset($data['sell_item'])) {
   echo json_encode(sellItem($db, $data));
+} else if (isset($data['get_storage'])) {
+  echo json_encode(getStorage($db, $data));
+} else if (isset($data['deposit_item'])) {
+  echo json_encode(depositItem($db, $data));
+} else if (isset($data['withdraw_item'])) {
+  echo json_encode(withdrawItem($db, $data));
 }
 
 mysqli_close($db);

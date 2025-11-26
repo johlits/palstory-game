@@ -215,6 +215,32 @@
 </section>
 
 <section>
+  <dialog class="nes-dialog is-dark is-rounded" id="storage-dialog" style="max-width: 600px; width: 90%;">
+    <form method="dialog">
+      <p class="title">Storage</p>
+      <div class="nes-container with-title" style="margin-bottom: 16px;">
+        <p class="title">Tabs</p>
+        <button type="button" id="storage-tab-stored" class="nes-btn is-primary" onclick="Storage.switchTab('stored')">Stored Items</button>
+        <button type="button" id="storage-tab-deposit" class="nes-btn" onclick="Storage.switchTab('deposit')">Deposit</button>
+        <span id="storage-slots-info" class="nes-text is-disabled" style="margin-left: 16px;">Storage: 0/20 slots</span>
+      </div>
+      
+      <div id="storage-panel-stored" style="max-height: 400px; overflow-y: auto;">
+        <div id="storage-stored-items"></div>
+      </div>
+      
+      <div id="storage-panel-deposit" style="max-height: 400px; overflow-y: auto; display: none;">
+        <div id="storage-deposit-items"></div>
+      </div>
+      
+      <menu class="dialog-menu">
+        <button class="nes-btn" onclick="playSound(getImageUrl('click.mp3')); Storage.close();"><span>Close</span></button>
+      </menu>
+    </form>
+  </dialog>
+</section>
+
+<section>
   <dialog class="nes-dialog is-dark is-rounded" id="help-dialog">
     <form method="dialog">
       <p class="title">Help</p>
@@ -440,6 +466,7 @@
       <button id="restBtn" type="button" class="nes-btn is-warning hidden" onclick="Locations.rest(); UI.closeLocationActions();">Rest</button>
       <button id="respawnBtn" type="button" class="nes-btn is-primary hidden" onclick="Locations.setRespawn(); UI.closeLocationActions();">Set Respawn</button>
       <button id="shopBtn" type="button" class="nes-btn is-success hidden" onclick="Shop.open(); UI.closeLocationActions();">Shop</button>
+      <button id="storageBtn" type="button" class="nes-btn is-warning hidden" onclick="Storage.open(); UI.closeLocationActions();">Storage</button>
     </div>
   </div>
 </div>
@@ -552,6 +579,7 @@
 <script src="js/rooms.js"></script>
 <script src="js/locations.js"></script>
 <script src="js/shop.js"></script>
+<script src="js/storage.js"></script>
 <script src="js/movement.js"></script>
 <script src="js/monsters.js"></script>
 <script src="js/ui.js"></script>

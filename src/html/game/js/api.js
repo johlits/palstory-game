@@ -110,6 +110,17 @@
     },
     sellItem: function(playerName, roomId, itemDbId) {
       return _req({ sell_item: playerName, room_id: roomId, item_db_id: itemDbId });
+    },
+    
+    // Storage
+    getStorage: function(playerName, roomId) {
+      return _req({ get_storage: playerName, room_id: roomId });
+    },
+    depositItem: function(playerName, roomId, itemDbId) {
+      return _req({ deposit_item: playerName, room_id: roomId, item_db_id: itemDbId });
+    },
+    withdrawItem: function(playerName, roomId, storageId) {
+      return _req({ withdraw_item: playerName, room_id: roomId, storage_id: storageId });
     }
   };
 

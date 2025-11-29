@@ -352,6 +352,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
         <h2 id="locations_section">Locations</h2>
         <table>
           <tr>
+            <th>ID</th>
             <th>Name</th>
             <th>Image</th>
             <th>Description</th>
@@ -371,6 +372,9 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
               while ($row = mysqli_fetch_array($result)) {
                 ?>
                 <tr>
+                  <td>
+                    <? echo $row[0]; ?>
+                  </td>
                   <td>
                     <? echo $row[1]; ?>
                   </td>
@@ -416,6 +420,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
         <h2 id="monsters_section">Monsters</h2>
         <table>
           <tr>
+            <th>ID</th>
             <th>Name</th>
             <th>Image</th>
             <th>Description</th>
@@ -433,6 +438,9 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
               while ($row = mysqli_fetch_array($result)) {
                 ?>
                 <tr>
+                  <td>
+                    <? echo $row[0]; ?>
+                  </td>
                   <td>
                     <? echo $row[1]; ?>
                   </td>
@@ -472,6 +480,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
         <h2 id="items_section">Items</h2>
         <table>
           <tr>
+            <th>ID</th>
             <th>Name</th>
             <th>Image</th>
             <th>Description</th>
@@ -489,6 +498,9 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
               while ($row = mysqli_fetch_array($result)) {
                 ?>
                 <tr>
+                  <td>
+                    <? echo $row[0]; ?>
+                  </td>
                   <td>
                     <? echo $row[1]; ?>
                   </td>

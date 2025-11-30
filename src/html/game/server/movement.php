@@ -64,16 +64,11 @@ WHERE room_id = ? AND x = ? AND y = ?");
     $smrows = mysqli_num_rows($smr);
     if ($smrows == 0) {
       if (rand(1, 100) <= $monsterSpawnRate) {
-        $debug = $locstats;
-        $locstats = verifyLocationStats($locstats);
-        $locparts = explode(';', $locstats);
-        for ($i = 0; $i < count($locparts); $i++) {
-          if (str_starts_with($locparts[$i], 'spawns=')) {
-            $monsters = explode(',', explode('=', $locparts[$i])[1]);
-            $monsterName = trim($monsters[rand(0, count($monsters) - 1)], " ");
-            $debug = $monsterName;
-            $newloc = spawnMonster($db, $monsterName, $room_id, $x, $y, $newloc);
-          }
+        $locParsed = parseStatsToArray($locstats);
+        if (isset($locParsed['spawns']) && $locParsed['spawns'] !== '') {
+          $monsters = explode(',', $locParsed['spawns']);
+          $monsterName = trim($monsters[rand(0, count($monsters) - 1)], " ");
+          $newloc = spawnMonster($db, $monsterName, $room_id, $x, $y, $newloc);
         }
       }
     }
@@ -193,10 +188,85 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
             WHERE name = ? AND room_id = ?");
       $us->bind_param("iisi", $x, $y, $player_name, $room_id);
       if ($us->execute()) {
+        // Build consolidated response with location and monster data
+        $consolidatedResponse = [
+          'status' => 'ok',
+          'dx' => $x - $prevx,
+          'dy' => $y - $prevy,
+          'draw' => $drawLocation == true,
+          'x' => $x,
+          'y' => $y,
+          'location' => null,
+          'monsters' => [],
+          'adjacent' => []
+        ];
+        
+        // Fetch current location data
+        try {
+          $locQuery = $db->prepare("SELECT gl.x, gl.y, gl.stats as gstats, rl.name, rl.image, rl.description, rl.stats, rl.location_type 
+            FROM game_locations gl 
+            INNER JOIN resources_locations rl ON gl.resource_id = rl.id 
+            WHERE gl.room_id = ? AND gl.x = ? AND gl.y = ?");
+          if ($locQuery) {
+            $locQuery->bind_param("iii", $room_id, $x, $y);
+            if ($locQuery->execute()) {
+              $locResult = $locQuery->get_result();
+              if ($locRow = mysqli_fetch_assoc($locResult)) {
+                $consolidatedResponse['location'] = $locRow;
+              }
+            }
+            $locQuery->close();
+          }
+        } catch (Throwable $_) {}
+        
+        // Fetch monsters at current location
+        try {
+          $monQuery = $db->prepare("SELECT gm.id, gm.x, gm.y, gm.stats, rm.name, rm.image, rm.description 
+            FROM game_monsters gm 
+            INNER JOIN resources_monsters rm ON gm.resource_id = rm.id 
+            WHERE gm.room_id = ? AND gm.x = ? AND gm.y = ?");
+          if ($monQuery) {
+            $monQuery->bind_param("iii", $room_id, $x, $y);
+            if ($monQuery->execute()) {
+              $monResult = $monQuery->get_result();
+              while ($monRow = mysqli_fetch_assoc($monResult)) {
+                $consolidatedResponse['monsters'][] = $monRow;
+              }
+            }
+            $monQuery->close();
+          }
+        } catch (Throwable $_) {}
+        
+        // Fetch adjacent tiles data (for client-side caching)
+        $dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+        foreach ($dirs as $d) {
+          $nx = $x + $d[0];
+          $ny = $y + $d[1];
+          try {
+            $adjQuery = $db->prepare("SELECT gl.x, gl.y, gl.stats as gstats, rl.name, rl.image, rl.description, rl.stats, rl.location_type 
+              FROM game_locations gl 
+              INNER JOIN resources_locations rl ON gl.resource_id = rl.id 
+              WHERE gl.room_id = ? AND gl.x = ? AND gl.y = ?");
+            if ($adjQuery) {
+              $adjQuery->bind_param("iii", $room_id, $nx, $ny);
+              if ($adjQuery->execute()) {
+                $adjResult = $adjQuery->get_result();
+                if ($adjRow = mysqli_fetch_assoc($adjResult)) {
+                  $consolidatedResponse['adjacent'][] = $adjRow;
+                }
+              }
+              $adjQuery->close();
+            }
+          } catch (Throwable $_) {}
+        }
+        
+        // Legacy array format for backward compatibility
         array_push($arr, "ok");
         array_push($arr, $x - $prevx);
         array_push($arr, $y - $prevy);
         array_push($arr, $drawLocation == true ? "draw" : "");
+        // Append consolidated data as 5th element
+        array_push($arr, $consolidatedResponse);
 
         // After a successful move, ensure the four adjacent tiles around the player exist
         $dirs = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -232,30 +302,20 @@ function performMove($db, $diffx, $diffy, $room_id, $x, $y, $monsterSpawnRate, $
             $gp->close();
           }
           if ($stats_str !== '') {
-            $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$crt=5;$gold=0;$skill_points=0;$job='none';$unlocked_skills='';
-            $parts = explode(';', $stats_str);
-            foreach ($parts as $p) {
-              if ($p === '') continue;
-              if (str_starts_with($p, 'lvl=')) { $lvl = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'exp=')) { $exp = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'hp=')) { $hp = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'maxhp=')) { $maxhp = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'mp=')) { $mp = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'maxmp=')) { $maxmp = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'atk=')) { $atk = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'def=')) { $def = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'spd=')) { $spd = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'evd=')) { $evd = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'crt=')) { $crt = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'gold=')) { $gold = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'skill_points=')) { $skill_points = intval(explode('=', $p)[1]); }
-              else if (str_starts_with($p, 'job=')) { $job = explode('=', $p)[1]; }
-              else if (str_starts_with($p, 'unlocked_skills=')) { $unlocked_skills = explode('=', $p)[1]; }
-            }
+            // Parse stats using centralized utility
+            $pstats = parsePlayerStats($stats_str);
+            $mp = $pstats['mp'];
+            $maxmp = $pstats['maxmp'];
+            
             // Only regen if maxmp > 0
             if ($maxmp > 0 && $mp < $maxmp) {
               $mp = min($maxmp, $mp + 1);
-              $new_stats = setPlayerStats($lvl, $exp, $hp, $maxhp, $mp, $maxmp, $atk, $def, $spd, $evd, $gold, $crt, $skill_points, $job, $unlocked_skills);
+              $new_stats = setPlayerStats(
+                $pstats['lvl'], $pstats['exp'], $pstats['hp'], $pstats['maxhp'], 
+                $mp, $maxmp, $pstats['atk'], $pstats['def'], $pstats['spd'], 
+                $pstats['evd'], $pstats['gold'], $pstats['crt'], $pstats['skill_points'], 
+                $pstats['job'], $pstats['unlocked_skills']
+              );
               $up = $db->prepare("UPDATE game_players SET stats = ? WHERE name = ? AND room_id = ?");
               if ($up) {
                 $up->bind_param("ssi", $new_stats, $player_name, $room_id);

@@ -78,116 +78,43 @@ function fightMonster($db, $data, $itemDropRate)
         break;
       }
 
-      // Initialize player stat defaults to avoid undefined variable notices
-      $player_lvl = 1;
-      $player_exp = 0;
-      $player_atk = 1;
-      $player_def = 0;
-      $player_spd = 1;
-      $player_evd = 0;
-      $player_crt = 5; // base 5% crit chance
-      $player_hp = 10;
-      $player_maxhp = 10;
-      $player_mp = 0;
-      $player_maxmp = 0;
-      $player_gold = 0;
-      $player_skill_points = 0;
-      $player_job = 'none';
-      $player_unlocked_skills = '';
+      // Parse player stats using centralized utility
+      $pstats = parsePlayerStats($player_stats);
+      $player_lvl = $pstats['lvl'];
+      $player_exp = $pstats['exp'];
+      $player_atk = $pstats['atk'];
+      $player_def = $pstats['def'];
+      $player_spd = $pstats['spd'];
+      $player_evd = $pstats['evd'];
+      $player_crt = $pstats['crt'];
+      $player_hp = $pstats['hp'];
+      $player_maxhp = $pstats['maxhp'];
+      $player_mp = $pstats['mp'];
+      $player_maxmp = $pstats['maxmp'];
+      $player_gold = $pstats['gold'];
+      $player_skill_points = $pstats['skill_points'];
+      $player_job = $pstats['job'];
+      $player_unlocked_skills = $pstats['unlocked_skills'];
+      $cooldowns = $pstats['cooldowns'];
 
-      $player_stats_parts = explode(';', $player_stats);
-      $cooldowns = array(); // preserve and mutate cd_* keys from player stats
-      for ($i = 0; $i < count($player_stats_parts); $i++) {
-        if (str_starts_with($player_stats_parts[$i], "lvl=")) {
-          $player_lvl = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "exp=")) {
-          $player_exp = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "atk=")) {
-          $player_atk = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "def=")) {
-          $player_def = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "spd=")) {
-          $player_spd = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "evd=")) {
-          $player_evd = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "crt=")) {
-          $player_crt = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "hp=")) {
-          $player_hp = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "maxhp=")) {
-          $player_maxhp = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "mp=")) {
-          $player_mp = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "maxmp=")) {
-          $player_maxmp = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "gold=")) {
-          $player_gold = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "skill_points=")) {
-          $player_skill_points = intval(explode('=', $player_stats_parts[$i])[1]);
-        }
-        if (str_starts_with($player_stats_parts[$i], "job=")) {
-          $player_job = explode('=', $player_stats_parts[$i])[1];
-        }
-        if (str_starts_with($player_stats_parts[$i], "unlocked_skills=")) {
-          $player_unlocked_skills = explode('=', $player_stats_parts[$i])[1];
-        }
-        // Capture cooldown keys like cd_power_strike=epoch_seconds;
-        if (str_starts_with($player_stats_parts[$i], "cd_")) {
-          $kv = explode('=', $player_stats_parts[$i]);
-          if (count($kv) == 2) {
-            $cooldowns[$kv[0]] = intval($kv[1]);
-          }
-        }
-      }
-
-      $itemAtk = 0;
-      $itemDef = 0;
-      $itemSpd = 0;
-      $itemEvd = 0;
-      $itemCrt = 0;
-
-      $se = $db->prepare("SELECT * 
-				FROM game_items WHERE owner_id = ? AND equipped = 1");
+      // Get equipped item stats using centralized utility
+      $itemStats = ['atk' => 0, 'def' => 0, 'spd' => 0, 'evd' => 0, 'crt' => 0];
+      $se = $db->prepare("SELECT stats FROM game_items WHERE owner_id = ? AND equipped = 1");
       $se->bind_param("i", $player_id);
       if ($se->execute()) {
         $r = $se->get_result();
-        $rc = mysqli_num_rows($r);
-        if ($rc > 0) {
-          while ($row = mysqli_fetch_array($r)) {
-            $item_stats_parts = explode(';', $row["stats"]);
-            for ($i = 0; $i < count($item_stats_parts); $i++) {
-              if (str_starts_with($item_stats_parts[$i], "atk=")) {
-                $itemAtk += intval(explode('=', $item_stats_parts[$i])[1]);
-              }
-              if (str_starts_with($item_stats_parts[$i], "def=")) {
-                $itemDef += intval(explode('=', $item_stats_parts[$i])[1]);
-              }
-              if (str_starts_with($item_stats_parts[$i], "spd=")) {
-                $itemSpd += intval(explode('=', $item_stats_parts[$i])[1]);
-              }
-              if (str_starts_with($item_stats_parts[$i], "evd=")) {
-                $itemEvd += intval(explode('=', $item_stats_parts[$i])[1]);
-              }
-              if (str_starts_with($item_stats_parts[$i], "crt=")) {
-                $itemCrt += intval(explode('=', $item_stats_parts[$i])[1]);
-              }
-            }
-          }
+        $equippedItems = [];
+        while ($row = mysqli_fetch_array($r)) {
+          $equippedItems[] = $row["stats"];
         }
+        $itemStats = sumEquippedItemStats($equippedItems);
       }
       $se->close();
+      $itemAtk = $itemStats['atk'];
+      $itemDef = $itemStats['def'];
+      $itemSpd = $itemStats['spd'];
+      $itemEvd = $itemStats['evd'];
+      $itemCrt = $itemStats['crt'];
 
       // Apply passive skill bonuses
       $passiveBonuses = getPassiveSkillBonuses($db, $player_unlocked_skills);
@@ -236,67 +163,21 @@ function fightMonster($db, $data, $itemDropRate)
             }
           } catch (Throwable $_) { }
 
-          // Initialize monster defaults to avoid notices if any key is missing
-          $monster_atk = 1;
-          $monster_def = 0;
-          $monster_spd = 1;
-          $monster_evd = 0;
-          $monster_crt = 5; // base 5% crit chance
-          $monster_hp = 1;
-          $monster_maxhp = 1;
-          $monster_mp = $monster_base_mp;
-          $monster_maxmp = $monster_base_maxmp;
-          $monster_drops = '';
-          $monster_gold = 0;
-          $monster_exp = 0;
-          $monster_cooldowns = array();
-
-          $monster_stats_parts = explode(';', $monster_stats);
-          for ($i = 0; $i < count($monster_stats_parts); $i++) {
-            if (str_starts_with($monster_stats_parts[$i], "atk=")) {
-              $monster_atk = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "def=")) {
-              $monster_def = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "spd=")) {
-              $monster_spd = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "evd=")) {
-              $monster_evd = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "crt=")) {
-              $monster_crt = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "hp=")) {
-              $monster_hp = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "maxhp=")) {
-              $monster_maxhp = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "mp=")) {
-              $monster_mp = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "maxmp=")) {
-              $monster_maxmp = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "drops=")) {
-              $monster_drops = explode('=', $monster_stats_parts[$i])[1];
-            }
-            if (str_starts_with($monster_stats_parts[$i], "gold=")) {
-              $monster_gold = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            if (str_starts_with($monster_stats_parts[$i], "exp=")) {
-              $monster_exp = intval(explode('=', $monster_stats_parts[$i])[1]);
-            }
-            // Capture monster cooldowns
-            if (str_starts_with($monster_stats_parts[$i], "cd_")) {
-              $kv = explode('=', $monster_stats_parts[$i]);
-              if (count($kv) == 2) {
-                $monster_cooldowns[$kv[0]] = intval($kv[1]);
-              }
-            }
-          }
+          // Parse monster stats using centralized utility
+          $mstats = parseMonsterStatsToArray($monster_stats);
+          $monster_atk = $mstats['atk'];
+          $monster_def = $mstats['def'];
+          $monster_spd = $mstats['spd'];
+          $monster_evd = $mstats['evd'];
+          $monster_crt = $mstats['crt'];
+          $monster_hp = $mstats['hp'];
+          $monster_maxhp = $mstats['maxhp'];
+          $monster_mp = $mstats['mp'] ?: $monster_base_mp;
+          $monster_maxmp = $mstats['maxmp'] ?: $monster_base_maxmp;
+          $monster_drops = $mstats['drops'];
+          $monster_gold = $mstats['gold'];
+          $monster_exp = $mstats['exp'];
+          $monster_cooldowns = $mstats['cooldowns'];
           
           // Load monster skills from database
           $monster_skills = array();

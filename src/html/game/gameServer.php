@@ -2,7 +2,27 @@
 // Suppress warnings to prevent breaking JSON responses
 error_reporting(E_ERROR | E_PARSE);
 
-header("Access-Control-Allow-Origin: *");
+// CORS configuration - restrict to allowed origins
+$allowed_origins = [
+    'http://localhost',
+    'http://localhost:8080',
+    'http://127.0.0.1',
+    'http://127.0.0.1:8080',
+    'https://palplanner.com',
+    'https://www.palplanner.com'
+];
+
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: " . $origin);
+} else {
+    // Fallback for development - allow if DISABLE_CORS env is set
+    if (getenv('DISABLE_CORS') || (isset($_ENV['DISABLE_CORS']) && $_ENV['DISABLE_CORS'])) {
+        header("Access-Control-Allow-Origin: *");
+    }
+}
+header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
+header("Access-Control-Allow-Credentials: true");
 header('Content-Type: application/json');
 
 require_once "./config.php";

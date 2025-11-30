@@ -122,7 +122,7 @@
           $('#player_by').text(window.bY(window.player_y));
 
           if (response[3] === 'draw') {
-            // new location
+            // New location - fetch location data separately
             $.ajax({
               url: 'gameServer.php',
               type: 'get',
@@ -146,6 +146,8 @@
                     3
                   );
                   window.locations.push(landscape);
+                  landscape.worldX = parseInt(resp[0].x);
+                  landscape.worldY = parseInt(resp[0].y);
                   window.locationsDict['' + resp[0].x + ',' + resp[0].y] = landscape;
                   ensureAdj(window.player_x, window.player_y);
                   getMons(window.player_x, window.player_y).then(function(){ window.canMove = true; dispatch('move:complete', { result: 'draw', x: window.player_x, y: window.player_y }); try { if (window.Locations && typeof window.Locations.updateCurrentTile === 'function') { window.Locations.updateCurrentTile(window.player_x, window.player_y); } } catch(_) {} maybeFlushBuffer(); });
@@ -156,6 +158,7 @@
               error: function () { window.canMove = true; dispatch('move:complete', { result: 'error' }); maybeFlushBuffer(); }
             });
           } else {
+            // No new tile to draw - check if we have the location cached
             var location = window.locationsDict['' + window.player_x + ',' + window.player_y];
             if (!location) {
               console.log('no new location, but exists in db, get all locations');

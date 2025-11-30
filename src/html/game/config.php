@@ -104,6 +104,72 @@ if (!defined('COMBAT_RL_MAX_ACTIONS')) {
     define('COMBAT_RL_MAX_ACTIONS', $m);
 }
 
+// --- CSRF Protection ---
+// Start session for CSRF token management
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/**
+ * Generate or retrieve the CSRF token for the current session.
+ * @return string The CSRF token
+ */
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Validate a CSRF token against the session token.
+ * @param string $token The token to validate
+ * @return bool True if valid, false otherwise
+ */
+function csrf_validate($token) {
+    if (empty($_SESSION['csrf_token']) || empty($token)) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Get CSRF token from request (checks both POST and header).
+ * @return string|null The token or null if not found
+ */
+function csrf_get_from_request() {
+    // Check POST data
+    if (isset($_POST['csrf_token'])) {
+        return $_POST['csrf_token'];
+    }
+    // Check GET data (for AJAX)
+    if (isset($_GET['csrf_token'])) {
+        return $_GET['csrf_token'];
+    }
+    // Check X-CSRF-Token header
+    $headers = getallheaders();
+    if (isset($headers['X-CSRF-Token'])) {
+        return $headers['X-CSRF-Token'];
+    }
+    if (isset($headers['X-Csrf-Token'])) {
+        return $headers['X-Csrf-Token'];
+    }
+    return null;
+}
+
+/**
+ * Validate CSRF token from request. Returns true if valid or if CSRF is disabled.
+ * @return bool True if valid
+ */
+function csrf_check() {
+    // Allow disabling CSRF for development via environment variable
+    if (env_val('DISABLE_CSRF', false)) {
+        return true;
+    }
+    $token = csrf_get_from_request();
+    return csrf_validate($token);
+}
+
 /**
  * Fetch header items from configured URL. Returns an array of HTML strings.
  */

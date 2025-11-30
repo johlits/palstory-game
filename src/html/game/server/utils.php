@@ -1,5 +1,239 @@
 <?php
 
+// ============================================================================
+// CENTRALIZED STAT PARSING UTILITIES
+// ============================================================================
+
+/**
+ * Parse a semicolon-delimited stat string into an associative array.
+ * Example: "hp=100;atk=10;def=5" => ['hp' => '100', 'atk' => '10', 'def' => '5']
+ * 
+ * @param string $stats The stat string to parse
+ * @return array Associative array of stat key => value pairs
+ */
+function parseStatsToArray($stats) {
+  $result = [];
+  if (!$stats || !is_string($stats)) return $result;
+  
+  $parts = explode(';', $stats);
+  foreach ($parts as $part) {
+    $part = trim($part);
+    if ($part === '' || strpos($part, '=') === false) continue;
+    $kv = explode('=', $part, 2);
+    if (count($kv) === 2) {
+      $result[trim($kv[0])] = trim($kv[1]);
+    }
+  }
+  return $result;
+}
+
+/**
+ * Get a single stat value from a stat string.
+ * 
+ * @param string $stats The stat string
+ * @param string $key The stat key to retrieve
+ * @param mixed $default Default value if key not found
+ * @return mixed The stat value or default
+ */
+function getStat($stats, $key, $default = null) {
+  $parsed = parseStatsToArray($stats);
+  return isset($parsed[$key]) ? $parsed[$key] : $default;
+}
+
+/**
+ * Get a stat as an integer.
+ * 
+ * @param string $stats The stat string
+ * @param string $key The stat key to retrieve
+ * @param int $default Default value if key not found
+ * @return int The stat value as integer
+ */
+function getStatInt($stats, $key, $default = 0) {
+  $val = getStat($stats, $key, null);
+  return $val !== null ? intval($val) : $default;
+}
+
+/**
+ * Convert an associative array back to a stat string.
+ * Example: ['hp' => 100, 'atk' => 10] => "hp=100;atk=10;"
+ * 
+ * @param array $statsArray Associative array of stats
+ * @return string The stat string
+ */
+function arrayToStatString($statsArray) {
+  if (!is_array($statsArray) || count($statsArray) === 0) return '';
+  
+  $parts = [];
+  foreach ($statsArray as $key => $value) {
+    $parts[] = $key . '=' . $value;
+  }
+  return implode(';', $parts) . ';';
+}
+
+/**
+ * Update or add a stat in a stat string.
+ * 
+ * @param string $stats The original stat string
+ * @param string $key The stat key to update
+ * @param mixed $value The new value
+ * @return string Updated stat string
+ */
+function setStat($stats, $key, $value) {
+  $parsed = parseStatsToArray($stats);
+  $parsed[$key] = $value;
+  return arrayToStatString($parsed);
+}
+
+/**
+ * Remove a stat from a stat string.
+ * 
+ * @param string $stats The original stat string
+ * @param string $key The stat key to remove
+ * @return string Updated stat string
+ */
+function removeStat($stats, $key) {
+  $parsed = parseStatsToArray($stats);
+  unset($parsed[$key]);
+  return arrayToStatString($parsed);
+}
+
+/**
+ * Parse a range value (e.g., "10-20") and return a random value within the range.
+ * If not a range, returns the value as-is.
+ * 
+ * @param string $value The value to parse
+ * @return int The resolved value
+ */
+function resolveStatRange($value) {
+  if (str_contains($value, '-')) {
+    $range = explode('-', $value);
+    if (count($range) === 2) {
+      return rand(intval($range[0]), intval($range[1]));
+    }
+  }
+  return intval($value);
+}
+
+/**
+ * Extract all cooldown stats (cd_*) from a stat string.
+ * 
+ * @param string $stats The stat string
+ * @return array Associative array of cooldown key => timestamp
+ */
+function extractCooldowns($stats) {
+  $cooldowns = [];
+  $parsed = parseStatsToArray($stats);
+  foreach ($parsed as $key => $value) {
+    if (str_starts_with($key, 'cd_')) {
+      $cooldowns[$key] = intval($value);
+    }
+  }
+  return $cooldowns;
+}
+
+/**
+ * Build player stats array from a stat string with defaults.
+ * Returns a standardized array with all expected player stat keys.
+ * 
+ * @param string $stats The stat string
+ * @return array Associative array with all player stats
+ */
+function parsePlayerStats($stats) {
+  $parsed = parseStatsToArray($stats);
+  
+  return [
+    'lvl' => isset($parsed['lvl']) ? intval($parsed['lvl']) : 1,
+    'exp' => isset($parsed['exp']) ? intval($parsed['exp']) : 0,
+    'hp' => isset($parsed['hp']) ? intval($parsed['hp']) : 10,
+    'maxhp' => isset($parsed['maxhp']) ? intval($parsed['maxhp']) : 10,
+    'mp' => isset($parsed['mp']) ? intval($parsed['mp']) : 0,
+    'maxmp' => isset($parsed['maxmp']) ? intval($parsed['maxmp']) : 0,
+    'atk' => isset($parsed['atk']) ? intval($parsed['atk']) : 1,
+    'def' => isset($parsed['def']) ? intval($parsed['def']) : 0,
+    'spd' => isset($parsed['spd']) ? intval($parsed['spd']) : 1,
+    'evd' => isset($parsed['evd']) ? intval($parsed['evd']) : 0,
+    'crt' => isset($parsed['crt']) ? intval($parsed['crt']) : 5,
+    'gold' => isset($parsed['gold']) ? intval($parsed['gold']) : 0,
+    'skill_points' => isset($parsed['skill_points']) ? intval($parsed['skill_points']) : 0,
+    'job' => isset($parsed['job']) ? $parsed['job'] : 'none',
+    'unlocked_skills' => isset($parsed['unlocked_skills']) ? $parsed['unlocked_skills'] : '',
+    'cooldowns' => extractCooldowns($stats),
+    '_raw' => $parsed  // Keep raw parsed data for any custom fields
+  ];
+}
+
+/**
+ * Build monster stats array from a stat string with defaults.
+ * 
+ * @param string $stats The stat string
+ * @return array Associative array with all monster stats
+ */
+function parseMonsterStatsToArray($stats) {
+  $parsed = parseStatsToArray($stats);
+  
+  return [
+    'hp' => isset($parsed['hp']) ? intval($parsed['hp']) : 1,
+    'maxhp' => isset($parsed['maxhp']) ? intval($parsed['maxhp']) : 1,
+    'mp' => isset($parsed['mp']) ? intval($parsed['mp']) : 0,
+    'maxmp' => isset($parsed['maxmp']) ? intval($parsed['maxmp']) : 0,
+    'atk' => isset($parsed['atk']) ? intval($parsed['atk']) : 1,
+    'def' => isset($parsed['def']) ? intval($parsed['def']) : 0,
+    'spd' => isset($parsed['spd']) ? intval($parsed['spd']) : 1,
+    'evd' => isset($parsed['evd']) ? intval($parsed['evd']) : 0,
+    'crt' => isset($parsed['crt']) ? intval($parsed['crt']) : 5,
+    'drops' => isset($parsed['drops']) ? $parsed['drops'] : '',
+    'gold' => isset($parsed['gold']) ? intval($parsed['gold']) : 0,
+    'exp' => isset($parsed['exp']) ? intval($parsed['exp']) : 0,
+    'cooldowns' => extractCooldowns($stats),
+    '_raw' => $parsed
+  ];
+}
+
+/**
+ * Build item stats array from a stat string.
+ * 
+ * @param string $stats The stat string
+ * @return array Associative array with item stats
+ */
+function parseItemStatsToArray($stats) {
+  $parsed = parseStatsToArray($stats);
+  
+  return [
+    'atk' => isset($parsed['atk']) ? intval($parsed['atk']) : 0,
+    'def' => isset($parsed['def']) ? intval($parsed['def']) : 0,
+    'spd' => isset($parsed['spd']) ? intval($parsed['spd']) : 0,
+    'evd' => isset($parsed['evd']) ? intval($parsed['evd']) : 0,
+    'crt' => isset($parsed['crt']) ? intval($parsed['crt']) : 0,
+    'type' => isset($parsed['type']) ? $parsed['type'] : '',
+    '_raw' => $parsed
+  ];
+}
+
+/**
+ * Sum item stats from multiple equipped items.
+ * 
+ * @param array $items Array of item stat strings or parsed arrays
+ * @return array Summed stats ['atk' => total, 'def' => total, ...]
+ */
+function sumEquippedItemStats($items) {
+  $totals = ['atk' => 0, 'def' => 0, 'spd' => 0, 'evd' => 0, 'crt' => 0];
+  
+  foreach ($items as $item) {
+    $stats = is_array($item) ? $item : parseItemStatsToArray($item);
+    $totals['atk'] += $stats['atk'];
+    $totals['def'] += $stats['def'];
+    $totals['spd'] += $stats['spd'];
+    $totals['evd'] += $stats['evd'];
+    $totals['crt'] += $stats['crt'];
+  }
+  
+  return $totals;
+}
+
+// ============================================================================
+// LEGACY STAT FUNCTIONS (refactored to use centralized parsing)
+// ============================================================================
+
 function parseItemStats($stats)
 {
   $statparts = explode(';', $stats);

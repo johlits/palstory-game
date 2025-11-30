@@ -232,27 +232,21 @@ function equipItem($db, $data)
   $ids = array();
   $types = array();
 
-  $se = $db->prepare("SELECT * 
-				FROM game_items WHERE owner_id = ?");
+  $se = $db->prepare("SELECT id, stats, equipped FROM game_items WHERE owner_id = ?");
   $se->bind_param("i", $player_id);
 
   $item_type = '';
   if ($se->execute()) {
     $r = $se->get_result();
-    $rc = mysqli_num_rows($r);
-    if ($rc > 0) {
-      while ($row = mysqli_fetch_array($r)) {
-        $item_stats_parts = explode(';', $row["stats"]);
-        for ($i = 0; $i < count($item_stats_parts); $i++) {
-          if (str_starts_with($item_stats_parts[$i], "type=")) {
-
-            if (intval($row["id"]) == $item_id) {
-              $item_type = explode('=', $item_stats_parts[$i])[1];
-            } else if (intval($row["equipped"]) == 1) {
-              array_push($ids, intval($row["id"]));
-              array_push($types, explode('=', $item_stats_parts[$i])[1]);
-            }
-          }
+    while ($row = mysqli_fetch_array($r)) {
+      $itemStats = parseItemStatsToArray($row["stats"]);
+      $type = $itemStats['type'];
+      if ($type !== '') {
+        if (intval($row["id"]) == $item_id) {
+          $item_type = $type;
+        } else if (intval($row["equipped"]) == 1) {
+          array_push($ids, intval($row["id"]));
+          array_push($types, $type);
         }
       }
     }

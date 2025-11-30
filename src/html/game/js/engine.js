@@ -39,6 +39,21 @@
     return area;
   }
 
+  /**
+   * Game component constructor - represents any drawable entity (player, monster, location, item)
+   * @constructor
+   * @param {number} id - Unique identifier for the component
+   * @param {number} width - Width in pixels
+   * @param {number} height - Height in pixels
+   * @param {string} color - Color (for rect type) or image URL (for image type)
+   * @param {number} x - Initial X position on canvas
+   * @param {number} y - Initial Y position on canvas
+   * @param {string} type - Component type: 'rect' or 'image'
+   * @param {string} name - Display name
+   * @param {string} description - Description text
+   * @param {string} stats - Semicolon-delimited stat string (e.g., "hp=100;atk=10")
+   * @param {number} meta - Meta type: 1=player, 2=monster, 3=location, 4=item
+   */
   function component(id, width, height, color, x, y, type, name, description, stats, meta) {
     this.id = id;
     this.type = type;
@@ -66,6 +81,9 @@
     this._statsCache = null;
     this.hp = null; this.maxhp = null;
     this.moving = false;
+    // World coordinates (set when tile is created/placed in locationsDict)
+    this.worldX = null;
+    this.worldY = null;
     this.update = function () {
       var ctx = window.myGameArea.context;
       var ss = window.ss;
@@ -102,22 +120,13 @@
           var borderColor = null;
           var borderWidth = 3;
           
-          // Check if tile has a monster (red border - highest priority)
-          // Find this tile's world coordinates by checking locationsDict
-          var tileWorldCoords = null;
-          if (window.locationsDict) {
-            for (var key in window.locationsDict) {
-              if (window.locationsDict[key] === this) {
-                tileWorldCoords = key;
-                break;
-              }
-            }
-          }
+          // Use stored world coordinates (O(1) lookup instead of O(n) dict search)
+          var tileX = this.worldX;
+          var tileY = this.worldY;
+          var tileWorldCoords = (tileX !== null && tileY !== null) ? ('' + tileX + ',' + tileY) : null;
+          
           // Check if any monster is at this tile's coordinates
           if (tileWorldCoords && window.monsterPositions && window.monsterPositions.length > 0) {
-            var coords = tileWorldCoords.split(',');
-            var tileX = parseInt(coords[0]);
-            var tileY = parseInt(coords[1]);
             for (var i = 0; i < window.monsterPositions.length; i++) {
               var monster = window.monsterPositions[i];
               if (monster.x === tileX && monster.y === tileY) {
@@ -482,14 +491,7 @@
         );
         console.log(window.player);
         try { console.log('player created at', window.player.x, window.player.y); } catch(_){ }
-        // One-time reload after player creation to ensure a clean first render
-        try {
-          var _once = sessionStorage.getItem('ps_reload_once');
-          if (!_once) {
-            sessionStorage.setItem('ps_reload_once', '1');
-            setTimeout(function(){ try { window.location.reload(); } catch(_){ } }, 50);
-          }
-        } catch(_){ }
+        // Note: Forced reload hack removed - proper initialization should handle first render
       } catch(e){ try { console.error('failed creating player:', e); } catch(_){} }
 
       // Start loop and initial fetch

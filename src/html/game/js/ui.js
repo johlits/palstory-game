@@ -1,6 +1,139 @@
 // UI helpers module (safe to load before game.js)
 (function(){
   'use strict';
+  
+  // ============================================================================
+  // TOAST NOTIFICATION SYSTEM
+  // ============================================================================
+  
+  var toastContainer = null;
+  var toastQueue = [];
+  var toastTimeout = null;
+  
+  /**
+   * Initialize toast container if not exists
+   */
+  function initToastContainer() {
+    if (toastContainer) return;
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+    document.body.appendChild(toastContainer);
+  }
+  
+  /**
+   * Show a toast notification
+   * @param {string} message - Message to display
+   * @param {string} [type='info'] - Type: 'info', 'success', 'error', 'warning'
+   * @param {number} [duration=3000] - Duration in ms
+   */
+  function showToast(message, type, duration) {
+    type = type || 'info';
+    duration = duration || 3000;
+    
+    initToastContainer();
+    
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.style.cssText = 'padding:12px 20px;border-radius:4px;color:#fff;font-size:14px;max-width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:auto;animation:slideIn 0.3s ease;';
+    
+    // Set background color based on type
+    var bgColors = {
+      info: '#3b82f6',
+      success: '#22c55e',
+      error: '#ef4444',
+      warning: '#f59e0b'
+    };
+    toast.style.backgroundColor = bgColors[type] || bgColors.info;
+    toast.textContent = message;
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove after duration
+    setTimeout(function() {
+      toast.style.animation = 'slideOut 0.3s ease';
+      setTimeout(function() {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, duration);
+  }
+  
+  // Listen for toast events
+  window.addEventListener('palstory:show_toast', function(e) {
+    try {
+      var detail = e.detail || {};
+      showToast(detail.message, detail.type, detail.duration);
+    } catch (_) {}
+  });
+  
+  // ============================================================================
+  // LOADING INDICATOR
+  // ============================================================================
+  
+  var loadingOverlay = null;
+  var loadingCount = 0;
+  
+  /**
+   * Show loading overlay
+   * @param {string} [message] - Optional loading message
+   */
+  function showLoading(message) {
+    loadingCount++;
+    
+    if (!loadingOverlay) {
+      loadingOverlay = document.createElement('div');
+      loadingOverlay.id = 'loading-overlay';
+      loadingOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      loadingOverlay.innerHTML = '<div style="background:#222;padding:20px 40px;border-radius:8px;color:#fff;text-align:center;"><div class="spinner" style="width:40px;height:40px;border:4px solid #444;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;"></div><div id="loading-message">Loading...</div></div>';
+      document.body.appendChild(loadingOverlay);
+      
+      // Add CSS animation if not exists
+      if (!document.getElementById('loading-styles')) {
+        var style = document.createElement('style');
+        style.id = 'loading-styles';
+        style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}';
+        document.head.appendChild(style);
+      }
+    }
+    
+    loadingOverlay.style.display = 'flex';
+    if (message) {
+      var msgEl = loadingOverlay.querySelector('#loading-message');
+      if (msgEl) msgEl.textContent = message;
+    }
+  }
+  
+  /**
+   * Hide loading overlay
+   */
+  function hideLoading() {
+    loadingCount = Math.max(0, loadingCount - 1);
+    if (loadingCount === 0 && loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+  }
+  
+  /**
+   * Force hide all loading overlays
+   */
+  function forceHideLoading() {
+    loadingCount = 0;
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+  }
+  
+  // Export loading functions
+  window.UI = window.UI || {};
+  window.UI.showToast = showToast;
+  window.UI.showLoading = showLoading;
+  window.UI.hideLoading = hideLoading;
+  window.UI.forceHideLoading = forceHideLoading;
+  
+  // ============================================================================
+  // TOGGLE STATE MANAGEMENT
+  // ============================================================================
+  
   // Ensure UI toggle globals exist
   if (typeof window.locationToggle === 'undefined') window.locationToggle = 0;
   if (typeof window.itemToggle === 'undefined') window.itemToggle = 0;

@@ -141,9 +141,9 @@ FROM resources_locations");
 
 </html>
 
-<!-- jQuery via CDN with local fallback -->
-<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-<script>window.jQuery || document.write('<script src="js/vendor/jquery-2.2.4.min.js"><\\/script>')</script>
+<!-- jQuery via CDN with local fallback (upgraded to 3.7.1 for security) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-3.7.1.min.js"><\\/script>')</script>
 <script>
   var BASE_PATH = <?= json_encode(base_path('')) ?>;
   var PALSTORY_PENDING_START = false;

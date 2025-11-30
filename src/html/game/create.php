@@ -552,5 +552,7 @@ if (!isset($_SESSION['secret']) || ($_SESSION['secret'] != admin_game() && $_SES
 </body>
 
 </html>
-<script src="js/vendor/jquery-2.2.4.min.js"></script>
+<!-- jQuery 3.7.1 (upgraded for security) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-3.7.1.min.js"><\\/script>')</script>
 <script src="js/create.js"></script>

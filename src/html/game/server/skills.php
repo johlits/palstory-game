@@ -33,27 +33,23 @@ function selectJob($db, $data)
       $player_id = intval($row["id"]);
       $stats_str = $row["stats"];
       
-      // Parse stats
-      $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$crt=5;$gold=0;$skill_points=0;$current_job='none';$unlocked_skills='';
-      $parts = explode(';', $stats_str);
-      foreach ($parts as $p) {
-        if ($p === '') continue;
-        if (str_starts_with($p, 'lvl=')) { $lvl = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'exp=')) { $exp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'hp=')) { $hp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'maxhp=')) { $maxhp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'mp=')) { $mp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'maxmp=')) { $maxmp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'atk=')) { $atk = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'def=')) { $def = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'spd=')) { $spd = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'evd=')) { $evd = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'crt=')) { $crt = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'gold=')) { $gold = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'skill_points=')) { $skill_points = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'job=')) { $current_job = explode('=', $p)[1]; }
-        else if (str_starts_with($p, 'unlocked_skills=')) { $unlocked_skills = explode('=', $p)[1]; }
-      }
+      // Parse stats using centralized utility
+      $pstats = parsePlayerStats($stats_str);
+      $lvl = $pstats['lvl'];
+      $exp = $pstats['exp'];
+      $hp = $pstats['hp'];
+      $maxhp = $pstats['maxhp'];
+      $mp = $pstats['mp'];
+      $maxmp = $pstats['maxmp'];
+      $atk = $pstats['atk'];
+      $def = $pstats['def'];
+      $spd = $pstats['spd'];
+      $evd = $pstats['evd'];
+      $crt = $pstats['crt'];
+      $gold = $pstats['gold'];
+      $skill_points = $pstats['skill_points'];
+      $current_job = $pstats['job'];
+      $unlocked_skills = $pstats['unlocked_skills'];
       
       // Check level requirement
       if ($lvl < $job_min_level) {
@@ -128,27 +124,23 @@ function unlockSkill($db, $data)
       $player_id = intval($row["id"]);
       $stats_str = $row["stats"];
       
-      // Parse stats
-      $lvl=1;$exp=0;$hp=1;$maxhp=1;$mp=0;$maxmp=0;$atk=0;$def=0;$spd=0;$evd=0;$crt=5;$gold=0;$skill_points=0;$job='none';$unlocked_skills='';
-      $parts = explode(';', $stats_str);
-      foreach ($parts as $p) {
-        if ($p === '') continue;
-        if (str_starts_with($p, 'lvl=')) { $lvl = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'exp=')) { $exp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'hp=')) { $hp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'maxhp=')) { $maxhp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'mp=')) { $mp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'maxmp=')) { $maxmp = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'atk=')) { $atk = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'def=')) { $def = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'spd=')) { $spd = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'evd=')) { $evd = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'crt=')) { $crt = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'gold=')) { $gold = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'skill_points=')) { $skill_points = intval(explode('=', $p)[1]); }
-        else if (str_starts_with($p, 'job=')) { $job = explode('=', $p)[1]; }
-        else if (str_starts_with($p, 'unlocked_skills=')) { $unlocked_skills = explode('=', $p)[1]; }
-      }
+      // Parse stats using centralized utility
+      $pstats = parsePlayerStats($stats_str);
+      $lvl = $pstats['lvl'];
+      $exp = $pstats['exp'];
+      $hp = $pstats['hp'];
+      $maxhp = $pstats['maxhp'];
+      $mp = $pstats['mp'];
+      $maxmp = $pstats['maxmp'];
+      $atk = $pstats['atk'];
+      $def = $pstats['def'];
+      $spd = $pstats['spd'];
+      $evd = $pstats['evd'];
+      $crt = $pstats['crt'];
+      $gold = $pstats['gold'];
+      $skill_points = $pstats['skill_points'];
+      $job = $pstats['job'];
+      $unlocked_skills = $pstats['unlocked_skills'];
       
       // Check job requirement
       if ($required_job !== 'all' && $job !== $required_job) {

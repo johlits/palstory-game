@@ -51,6 +51,9 @@
                 3
               );
               locations.push(landscape);
+              // Store world coordinates for O(1) lookup in render loop
+              landscape.worldX = nx;
+              landscape.worldY = ny;
               // attach per-tile game stats (gstats) for UI logic like gather availability
               try { landscape.gstats = response[0].gstats || ""; } catch(_) { landscape.gstats = ""; }
               try { landscape.location_type = response[0].location_type || ""; } catch(_) { landscape.location_type = ""; }
@@ -153,6 +156,9 @@
               3
             );
             locations.push(landscape);
+            // Store world coordinates for O(1) lookup in render loop
+            landscape.worldX = parseInt(item.x);
+            landscape.worldY = parseInt(item.y);
             try { landscape.gstats = item.gstats || ""; } catch(_) { landscape.gstats = ""; }
             try { landscape.location_type = item.location_type || ""; } catch(_) { landscape.location_type = ""; }
             locationsDict["" + item.x + "," + item.y] = landscape;

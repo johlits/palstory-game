@@ -1,0 +1,1175 @@
+// UI helpers module (safe to load before game.js)
+(function(){
+  'use strict';
+  
+  // ============================================================================
+  // TOAST NOTIFICATION SYSTEM
+  // ============================================================================
+  
+  var toastContainer = null;
+  var toastQueue = [];
+  var toastTimeout = null;
+  
+  /**
+   * Initialize toast container if not exists
+   */
+  function initToastContainer() {
+    if (toastContainer) return;
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+    document.body.appendChild(toastContainer);
+  }
+  
+  /**
+   * Show a toast notification
+   * @param {string} message - Message to display
+   * @param {string} [type='info'] - Type: 'info', 'success', 'error', 'warning'
+   * @param {number} [duration=3000] - Duration in ms
+   */
+  function showToast(message, type, duration) {
+    type = type || 'info';
+    duration = duration || 3000;
+    
+    initToastContainer();
+    
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.style.cssText = 'padding:12px 20px;border-radius:4px;color:#fff;font-size:14px;max-width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:auto;animation:slideIn 0.3s ease;';
+    
+    // Set background color based on type
+    var bgColors = {
+      info: '#3b82f6',
+      success: '#22c55e',
+      error: '#ef4444',
+      warning: '#f59e0b'
+    };
+    toast.style.backgroundColor = bgColors[type] || bgColors.info;
+    toast.textContent = message;
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove after duration
+    setTimeout(function() {
+      toast.style.animation = 'slideOut 0.3s ease';
+      setTimeout(function() {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, duration);
+  }
+  
+  // Listen for toast events
+  window.addEventListener('palstory:show_toast', function(e) {
+    try {
+      var detail = e.detail || {};
+      showToast(detail.message, detail.type, detail.duration);
+    } catch (_) {}
+  });
+  
+  // ============================================================================
+  // LOADING INDICATOR
+  // ============================================================================
+  
+  var loadingOverlay = null;
+  var loadingCount = 0;
+  
+  /**
+   * Show loading overlay
+   * @param {string} [message] - Optional loading message
+   */
+  function showLoading(message) {
+    loadingCount++;
+    
+    if (!loadingOverlay) {
+      loadingOverlay = document.createElement('div');
+      loadingOverlay.id = 'loading-overlay';
+      loadingOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      loadingOverlay.innerHTML = '<div style="background:#222;padding:20px 40px;border-radius:8px;color:#fff;text-align:center;"><div class="spinner" style="width:40px;height:40px;border:4px solid #444;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;"></div><div id="loading-message">Loading...</div></div>';
+      document.body.appendChild(loadingOverlay);
+      
+      // Add CSS animation if not exists
+      if (!document.getElementById('loading-styles')) {
+        var style = document.createElement('style');
+        style.id = 'loading-styles';
+        style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}';
+        document.head.appendChild(style);
+      }
+    }
+    
+    loadingOverlay.style.display = 'flex';
+    if (message) {
+      var msgEl = loadingOverlay.querySelector('#loading-message');
+      if (msgEl) msgEl.textContent = message;
+    }
+  }
+  
+  /**
+   * Hide loading overlay
+   */
+  function hideLoading() {
+    loadingCount = Math.max(0, loadingCount - 1);
+    if (loadingCount === 0 && loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+  }
+  
+  /**
+   * Force hide all loading overlays
+   */
+  function forceHideLoading() {
+    loadingCount = 0;
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+  }
+  
+  // Export loading functions
+  window.UI = window.UI || {};
+  window.UI.showToast = showToast;
+  window.UI.showLoading = showLoading;
+  window.UI.hideLoading = hideLoading;
+  window.UI.forceHideLoading = forceHideLoading;
+  
+  // ============================================================================
+  // TOGGLE STATE MANAGEMENT
+  // ============================================================================
+  
+  // Ensure UI toggle globals exist
+  if (typeof window.locationToggle === 'undefined') window.locationToggle = 0;
+  if (typeof window.itemToggle === 'undefined') window.itemToggle = 0;
+  if (typeof window.itemInfoBox === 'undefined') window.itemInfoBox = 0;
+  if (typeof window.monsterToggle === 'undefined') window.monsterToggle = 0;
+
+  // New independent toggle states
+  if (typeof window.locationInfoOpen === 'undefined') window.locationInfoOpen = false;
+  if (typeof window.locationStatsOpen === 'undefined') window.locationStatsOpen = false;
+  if (typeof window.monsterInfoOpen === 'undefined') window.monsterInfoOpen = false;
+  if (typeof window.monsterStatsOpen === 'undefined') window.monsterStatsOpen = false;
+  if (typeof window.monsterBattleOpen === 'undefined') window.monsterBattleOpen = false;
+
+  function showEl(sel) { try { $(sel).removeClass('hidden'); } catch (e) {} }
+  function hideEl(sel) { try { $(sel).addClass('hidden'); } catch (e) {} }
+
+  // Small helper to check visibility based on our hidden class
+  function isElVisible(sel){
+    try {
+      var el = document.querySelector(sel);
+      if (!el) return false;
+      return !el.classList.contains('hidden');
+    } catch(_) { return false; }
+  }
+
+  // Keep container/name visibility in sync for Location box
+  function updateLocationContainers(){
+    try {
+      var anyOpen = (window.locationInfoOpen || window.locationStatsOpen);
+      if (anyOpen) {
+        showEl('#location_data_box');
+        hideEl('#location_name_box');
+      } else {
+        hideEl('#location_data_box');
+        showEl('#location_name_box');
+      }
+      // Legacy integer mirror (best-effort)
+      if (!anyOpen) window.locationToggle = 0;
+      else if (window.locationInfoOpen) window.locationToggle = 1;
+      else if (window.locationStatsOpen) window.locationToggle = 2;
+    } catch(_) {}
+  }
+
+  // Keep container/name visibility in sync for Monster box
+  function updateMonsterContainers(){
+    try {
+      var anyOpen = (window.monsterInfoOpen || window.monsterStatsOpen || window.monsterBattleOpen);
+      if (anyOpen) {
+        showEl('#monster_data_box');
+        hideEl('#monster_name_box');
+      } else {
+        hideEl('#monster_data_box');
+        showEl('#monster_name_box');
+      }
+      // Legacy integer mirror (best-effort)
+      if (!anyOpen) window.monsterToggle = 0;
+      else if (window.monsterBattleOpen) window.monsterToggle = 3;
+      else if (window.monsterStatsOpen) window.monsterToggle = 2;
+      else if (window.monsterInfoOpen) window.monsterToggle = 1;
+    } catch(_) {}
+  }
+
+  function showCreatePlayerBox() {
+    if (!window.gameStarted) {
+      try { if (typeof window.previewPortrait === 'function') window.previewPortrait(); } catch (e) {}
+      showEl('#create_player_box');
+    }
+  }
+
+  function showCreateRoomBox() {
+    if (!window.gameStarted) {
+      showEl('#create_game_box');
+    }
+  }
+
+  function gameOver() {
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    window.location.href = url;
+  }
+
+  function setGameLink() {
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    $('#game_link').attr('href', url);
+  }
+
+  if (!window.UI) window.UI = {};
+  window.UI.showEl = showEl;
+  window.UI.hideEl = hideEl;
+  // Dynamic z-index management for HUD panels
+  var BASE_PANEL_Z = 10;
+  if (typeof window.__uiTopZIndex === 'undefined') window.__uiTopZIndex = BASE_PANEL_Z + 1;
+  window.UI.raisePanel = function(selOrEl){
+    try {
+      var el = (typeof selOrEl === 'string') ? document.querySelector(selOrEl) : selOrEl;
+      if (!el) return;
+      window.__uiTopZIndex = Math.max(window.__uiTopZIndex || BASE_PANEL_Z, BASE_PANEL_Z) + 1;
+      el.style.zIndex = String(window.__uiTopZIndex);
+    } catch (_) {}
+  };
+  function setupPanelHoverZ(){
+    try {
+      var sels = ['#items_box', '#monster_box', '#skills_box', '#location_box', '#skill_info_box'];
+      sels.forEach(function(sel){
+        var el = document.querySelector(sel);
+        if (!el || el.__hoverBound) return;
+        el.__hoverBound = true;
+        el.addEventListener('mouseenter', function(){ try { window.UI.raisePanel(el); } catch(_) {} });
+      });
+    } catch(_) {}
+  }
+  window.UI.setupPanelHoverZ = setupPanelHoverZ;
+  // Ensure move buttons start hidden
+  window.UI.resetMoveButtons = function(){ try { hideEl('#moveSuccessBtn'); hideEl('#moveDisabledBtn'); } catch(_) {} };
+  // Help overlay controller (always-on-top)
+  window.UI.setHelpOverlayVisible = function(visible, line1, line2){
+    try {
+      var el = document.getElementById('help-overlay'); if (!el) return;
+      if (typeof line1 === 'string') { el.querySelector('.h1').textContent = line1; }
+      if (typeof line2 === 'string') { el.querySelector('.h2').textContent = line2; }
+      el.style.display = visible ? 'block' : 'none';
+    } catch(_) {}
+  };
+  // Legacy global aliases (for older modules like audio.js)
+  if (typeof window.showEl !== 'function') window.showEl = showEl;
+  if (typeof window.hideEl !== 'function') window.hideEl = hideEl;
+  window.UI.showCreatePlayerBox = showCreatePlayerBox;
+  window.UI.showCreateRoomBox = showCreateRoomBox;
+  window.UI.gameOver = gameOver;
+  window.UI.setGameLink = setGameLink;
+  // Toggle helpers (delegate UI-only logic from game.js)
+  window.UI.toggleStats = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    if (!window.showStats) {
+      window.showStats = true;
+      showEl("#player_bstats");
+      $("#showStatsBtn").prop("value", "Hide Stats");
+    } else {
+      window.showStats = false;
+      hideEl("#player_bstats");
+      $("#showStatsBtn").prop("value", "Show Stats");
+    }
+  };
+
+  // High-level UI flows previously in game.js
+  window.UI.showCreateRoomBox = function () {
+    if (!window.gameStarted) {
+      try { window.UI.showEl('#create_game_box'); } catch (_) {
+        try { $('#create_game_box').removeClass('hidden'); } catch (_) {}
+      }
+      // Prefill expiration with +7 days if empty
+      try {
+        var $inp = $('#create_game_expiration');
+        if ($inp && !$inp.val()) {
+          var d = new Date();
+          d.setDate(d.getDate() + 7);
+          var v = d.toISOString().slice(0, 10);
+          $inp.val(v);
+        }
+      } catch (_) {}
+    }
+  };
+
+  window.UI.gameOver = function () {
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    window.location.href = url;
+  };
+
+  window.UI.setGameLink = function () {
+    var basePath = (typeof window.BASE_PATH !== 'undefined') ? window.BASE_PATH : '';
+    var url = basePath + "/game/board.php?room=" + $('#room').text() + "&player=" + $('#player').text();
+    $('#game_link').attr('href', url);
+  };
+
+  // Movement indicator setup
+  (function setupMoveIndicator(){
+    try {
+      if (document.getElementById('moving-indicator')) return;
+      var el = document.createElement('div');
+      el.id = 'moving-indicator';
+      el.textContent = 'Moving…';
+      el.style.position = 'fixed';
+      el.style.bottom = '8px';
+      el.style.right = '8px';
+      el.style.padding = '4px 8px';
+      el.style.background = 'rgba(0,0,0,0.55)';
+      el.style.color = '#fff';
+      el.style.fontSize = '12px';
+      el.style.borderRadius = '4px';
+      el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
+      el.style.display = 'none';
+      el.style.zIndex = '9999';
+      document.body.appendChild(el);
+
+      function show() { el.style.display = 'block'; document.body.classList.add('ps-moving'); window.uiMoving = true; }
+      function hide() { el.style.display = 'none'; document.body.classList.remove('ps-moving'); window.uiMoving = false; }
+
+      window.addEventListener('palstory:move:start', function(){ show(); });
+      window.addEventListener('palstory:move:complete', function(){ hide(); });
+    } catch (_) {}
+  })();
+
+  // Toast helper for quick on-screen notifications
+  (function setupToast(){
+    try {
+      if (document.getElementById('ps-toast')) return;
+      var el = document.createElement('div');
+      el.id = 'ps-toast';
+      el.style.position = 'fixed';
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+      el.style.bottom = '12%';
+      el.style.padding = '8px 12px';
+      el.style.background = 'rgba(0,0,0,0.70)';
+      el.style.color = '#fff';
+      el.style.fontSize = '14px';
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 6px 20px rgba(0,0,0,0.45)';
+      el.style.zIndex = '100002';
+      el.style.pointerEvents = 'none';
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      var hideTimer = null;
+      function toast(msg){
+        try {
+          el.textContent = msg;
+          el.style.display = 'block';
+          if (hideTimer) clearTimeout(hideTimer);
+          hideTimer = setTimeout(function(){ el.style.display = 'none'; }, 1600);
+        } catch(_) {}
+      }
+      window.UI = window.UI || {};
+      window.UI.toast = toast;
+    } catch(_) {}
+  })();
+
+  // Blocked reason tooltip (lightweight)
+  (function setupBlockedTooltip(){
+    try {
+      if (document.getElementById('blocked-tooltip')) return;
+      var tip = document.createElement('div');
+      tip.id = 'blocked-tooltip';
+      tip.style.position = 'fixed';
+      tip.style.pointerEvents = 'none';
+      tip.style.background = 'rgba(0,0,0,0.8)';
+      tip.style.color = '#fff';
+      tip.style.padding = '3px 6px';
+      tip.style.fontSize = '12px';
+      tip.style.borderRadius = '4px';
+      tip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+      tip.style.zIndex = '10001';
+      tip.style.display = 'none';
+      document.body.appendChild(tip);
+      window.__blockedTip = tip;
+    } catch(_) {}
+  })();
+
+  // Options Modal (opened by 'O')
+  ;(function setupOptionsModal(){
+    try {
+      // Initialize overlay setting from localStorage
+      try {
+        var stored = localStorage.getItem('ps_showBlockedOverlay');
+        if (stored === 'true' || stored === 'false') {
+          window.showBlockedOverlay = (stored === 'true');
+        }
+      } catch(_) {}
+
+      if (document.getElementById('ps-options')) return;
+      // Backdrop
+      var backdrop = document.createElement('div');
+      backdrop.id = 'ps-options-backdrop';
+      Object.assign(backdrop.style, {
+        position: 'fixed', left: '0', top: '0', right: '0', bottom: '0',
+        background: 'rgba(0,0,0,0.45)', zIndex: '10000', display: 'none'
+      });
+      // Modal
+      var modal = document.createElement('div');
+      modal.id = 'ps-options';
+      Object.assign(modal.style, {
+        position: 'fixed', left: '50%', top: '30%', transform: 'translate(-50%, -30%)',
+        minWidth: '260px', padding: '12px 14px', background: '#1a1a1a', color: '#fff',
+        borderRadius: '8px', boxShadow: '0 6px 24px rgba(0,0,0,0.45)', zIndex: '10001', display: 'none'
+      });
+
+      var header = document.createElement('div');
+      header.textContent = 'Options';
+      header.style.fontWeight = '600';
+      header.style.marginBottom = '8px';
+      modal.appendChild(header);
+
+      function makeRow(labelText, initCheckedFn, onChangeFn) {
+        var row = document.createElement('label');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.margin = '6px 0';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!initCheckedFn();
+        var span = document.createElement('span');
+        span.textContent = labelText;
+        row.appendChild(cb); row.appendChild(span);
+        cb.addEventListener('change', function(){
+          try { if (typeof window.playSound === 'function') playSound(getImageUrl('click.mp3')); } catch(_) {}
+          onChangeFn(!!cb.checked);
+        });
+        modal.appendChild(row);
+        return { row: row, cb: cb };
+      }
+
+      // Section: Accessibility
+      var accHeader = document.createElement('div');
+      accHeader.textContent = 'Accessibility';
+      accHeader.style.marginTop = '6px';
+      accHeader.style.fontWeight = '600';
+      accHeader.style.opacity = '0.9';
+      modal.appendChild(accHeader);
+
+      // Show blocked tiles
+      var blockedRow = makeRow('🧱 Show blocked tiles', function(){
+        return (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
+      }, function(checked){
+        window.showBlockedOverlay = !!checked;
+        try { localStorage.setItem('ps_showBlockedOverlay', window.showBlockedOverlay ? 'true' : 'false'); } catch(_) {}
+      });
+
+      // divider
+      var div1 = document.createElement('div');
+      div1.style.height = '1px';
+      div1.style.background = 'rgba(255,255,255,0.08)';
+      div1.style.margin = '8px 0 4px 0';
+      modal.appendChild(div1);
+
+      // Section: Audio
+      var audioHeader = document.createElement('div');
+      audioHeader.textContent = 'Audio';
+      audioHeader.style.marginTop = '10px';
+      audioHeader.style.fontWeight = '600';
+      audioHeader.style.opacity = '0.9';
+      modal.appendChild(audioHeader);
+
+      // Audio: SFX
+      var sfxRow = makeRow('🔊 Sound effects (SFX)', function(){
+        var pref = null; try { pref = localStorage.getItem('palstory-sfx'); } catch(_) {}
+        if (pref === '0') return false;
+        if (pref === '1') return true;
+        return (typeof window.sfx === 'number') ? (window.sfx === 1) : true;
+      }, function(checked){
+        if (window.AudioCtl && typeof window.AudioCtl.getSfx === 'function') window.AudioCtl.getSfx(checked ? 1 : 0);
+      });
+
+      // Audio: BGM
+      var bgmRow = makeRow('🎵 Background music (BGM)', function(){
+        var pref = null; try { pref = localStorage.getItem('palstory-bgm'); } catch(_) {}
+        if (pref === '1') return true;
+        if (pref === '0') return false;
+        return (typeof window.bgm === 'number') ? (window.bgm === 1) : false;
+      }, function(checked){
+        if (window.AudioCtl && typeof window.AudioCtl.getMusic === 'function') window.AudioCtl.getMusic(checked ? 1 : 0);
+        if (checked && window.AudioCtl && typeof window.AudioCtl.setupBgmUnlockOnce === 'function') window.AudioCtl.setupBgmUnlockOnce();
+        // Re-apply preferred volume shortly after starting BGM
+        try {
+          var volPref = parseFloat(localStorage.getItem('palstory-bgm-vol'));
+          if (isNaN(volPref)) volPref = 1;
+          setTimeout(function(){ try { var el = document.getElementById('bgm'); if (el) el.volume = Math.min(1, Math.max(0, volPref)); } catch(_) {} }, 500);
+        } catch(_) {}
+      });
+
+      // Audio: TTS
+      var ttsRow = makeRow('🗣️ Text-to-speech (TTS)', function(){
+        return (typeof window.t2s === 'number') ? (window.t2s === 1) : true;
+      }, function(checked){
+        if (window.AudioCtl && typeof window.AudioCtl.getT2s === 'function') window.AudioCtl.getT2s(checked ? 1 : 0);
+      });
+
+      // Audio: BGM Volume slider
+      var volRow = document.createElement('div');
+      volRow.style.display = 'flex';
+      volRow.style.alignItems = 'center';
+      volRow.style.gap = '8px';
+      volRow.style.margin = '6px 0';
+      var volLabel = document.createElement('span'); volLabel.textContent = '🔈 BGM volume';
+      var volInput = document.createElement('input');
+      volInput.type = 'range'; volInput.min = '0'; volInput.max = '100'; volInput.step = '1';
+      volInput.style.flex = '1';
+      var volPct = document.createElement('span'); volPct.style.minWidth = '32px'; volPct.style.textAlign = 'right';
+      function getVolPref(){ var v = parseFloat(localStorage.getItem('palstory-bgm-vol')); return isNaN(v) ? 1 : Math.min(1, Math.max(0, v)); }
+      function setElVolumeFromPref(){ try { var el = document.getElementById('bgm'); if (el) el.volume = getVolPref(); } catch(_) {} }
+      try { var initVol = getVolPref(); volInput.value = String(Math.round(initVol*100)); volPct.textContent = Math.round(initVol*100)+'%'; } catch(_) { volInput.value = '100'; volPct.textContent = '100%'; }
+      volInput.addEventListener('input', function(){
+        var v = Math.min(100, Math.max(0, parseInt(volInput.value||'0', 10)));
+        volPct.textContent = v + '%';
+      });
+      volInput.addEventListener('change', function(){
+        var v = Math.min(100, Math.max(0, parseInt(volInput.value||'0', 10)))/100;
+        try { localStorage.setItem('palstory-bgm-vol', String(v)); } catch(_) {}
+        setElVolumeFromPref();
+      });
+      volRow.appendChild(volLabel); volRow.appendChild(volInput); volRow.appendChild(volPct);
+      modal.appendChild(volRow);
+
+      // divider before actions
+      var div2 = document.createElement('div');
+      div2.style.height = '1px';
+      div2.style.background = 'rgba(255,255,255,0.08)';
+      div2.style.margin = '8px 0 8px 0';
+      modal.appendChild(div2);
+
+      var actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.justifyContent = 'flex-end';
+      actions.style.gap = '8px';
+      var closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close (Esc)';
+      closeBtn.style.padding = '6px 10px';
+      closeBtn.style.cursor = 'pointer';
+      actions.appendChild(closeBtn);
+      modal.appendChild(actions);
+
+      // (removed) stray listener referencing undefined 'cb'
+
+      function openOptions(){
+        try { if (typeof window.playSound === 'function') playSound(getImageUrl('click.mp3')); } catch(_) {}
+        blockedRow.cb.checked = (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
+        // refresh audio checkboxes to reflect current state
+        try {
+          var sfxPref = localStorage.getItem('palstory-sfx');
+          sfxRow.cb.checked = (sfxPref === '0') ? false : true;
+        } catch(_) { sfxRow.cb.checked = (typeof window.sfx === 'number') ? (window.sfx === 1) : true; }
+        try {
+          var bgmPref = localStorage.getItem('palstory-bgm');
+          if (bgmPref === '1') bgmRow.cb.checked = true; else if (bgmPref === '0') bgmRow.cb.checked = false; else bgmRow.cb.checked = (typeof window.bgm === 'number') ? (window.bgm === 1) : false;
+        } catch(_) { bgmRow.cb.checked = (typeof window.bgm === 'number') ? (window.bgm === 1) : false; }
+        ttsRow.cb.checked = (typeof window.t2s === 'number') ? (window.t2s === 1) : true;
+        // refresh volume view and apply to element
+        try { var v = getVolPref(); volInput.value = String(Math.round(v*100)); volPct.textContent = Math.round(v*100)+'%'; setElVolumeFromPref(); } catch(_) {}
+        backdrop.style.display = 'block';
+        modal.style.display = 'block';
+      }
+      function closeOptions(){
+        backdrop.style.display = 'none';
+        modal.style.display = 'none';
+      }
+      closeBtn.addEventListener('click', closeOptions);
+      backdrop.addEventListener('click', closeOptions);
+      window.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeOptions(); });
+
+      document.body.appendChild(backdrop);
+      document.body.appendChild(modal);
+
+      // expose controls
+      window.UI = window.UI || {};
+      window.UI.openOptions = openOptions;
+      window.UI.closeOptions = closeOptions;
+    } catch(_) {}
+  })();
+
+  // Global keybindings: 'O' opens Options; Shift+B toggles blocked overlay
+  (function setupGlobalHotkeys(){
+    try {
+      if (window.__hotkeysSetup) return; window.__hotkeysSetup = true;
+      document.addEventListener('keydown', function(e){
+        var key = e.key || '';
+        // Open Options (ignore if typing into an input/textarea)
+        var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+        var typing = (tag === 'input' || tag === 'textarea' || e.target.isContentEditable === true);
+        if (!typing && (key === 'o' || key === 'O')) {
+          if (window.UI && typeof window.UI.openOptions === 'function') { window.UI.openOptions(); e.preventDefault(); }
+          return;
+        }
+        // Toggle blocked overlay with Shift+B
+        if (!typing && e.shiftKey && (key === 'b' || key === 'B')) {
+          var val = (typeof window.showBlockedOverlay === 'undefined') ? true : !!window.showBlockedOverlay;
+          val = !val;
+          window.showBlockedOverlay = val;
+          try { localStorage.setItem('ps_showBlockedOverlay', val ? 'true' : 'false'); } catch(_) {}
+          try { if (window.UI && typeof window.UI.toast === 'function') window.UI.toast('Blocked overlay: ' + (val ? 'ON' : 'OFF')); } catch(_) {}
+          e.preventDefault();
+        }
+      });
+    } catch(_) {}
+  })();
+
+  // Always-on-top Help overlay (overlaps everything)
+  (function setupHelpOverlay(){
+    try {
+      if (document.getElementById('help-overlay')) return;
+      var el = document.createElement('div');
+      el.id = 'help-overlay';
+      el.style.position = 'fixed';
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+      el.style.bottom = '10%';
+      el.style.padding = '12px 16px';
+      el.style.background = 'rgba(0,0,0,0.70)';
+      el.style.color = '#fff';
+      el.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'";
+      el.style.fontSize = '16px';
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 6px 20px rgba(0,0,0,0.45)';
+      el.style.zIndex = '100000';
+      el.style.pointerEvents = 'none';
+      el.style.textAlign = 'center';
+      el.style.display = 'none';
+      var l1 = document.createElement('div'); l1.className = 'h1'; l1.textContent = window.moveInstructions || 'Use arrow keys (or WASD) to move';
+      var l2 = document.createElement('div'); l2.className = 'h2'; l2.style.opacity = '0.9'; l2.style.marginTop = '4px'; l2.textContent = window.helpInstructions || 'Or click a tile and press Move • Press H for help';
+      el.appendChild(l1); el.appendChild(l2);
+      document.body.appendChild(el);
+    } catch(_) {}
+  })();
+
+  // On initial load, hide move buttons by default
+  try { window.UI.resetMoveButtons(); } catch(_) {}
+
+  // First-run onboarding hint: show where Options live
+  (function onboardingHint(){
+    try {
+      var flag = localStorage.getItem('ps_onboarding_v1');
+      if (!flag && window.UI && typeof window.UI.setHelpOverlayVisible === 'function') {
+        window.UI.setHelpOverlayVisible(true, 'Press O for Options', 'Configure audio, TTS, and overlays');
+        setTimeout(function(){ try { window.UI.setHelpOverlayVisible(false); } catch(_) {} }, 5000);
+        localStorage.setItem('ps_onboarding_v1', '1');
+      }
+    } catch(_) {}
+  })();
+
+  // Initialize panel visibility (closed by default) to avoid auto-showing siblings
+  (function initIndependentToggles(){
+    try {
+      // Close all sub-panels initially
+      hideEl('#location_info_box');
+      hideEl('#location_stats_box');
+      hideEl('#monster_info_box');
+      hideEl('#monster_stats_box');
+      hideEl('#monster_battle_box');
+      // Reset flags
+      window.locationInfoOpen = false;
+      window.locationStatsOpen = false;
+      window.monsterInfoOpen = false;
+      window.monsterStatsOpen = false;
+      window.monsterBattleOpen = false;
+      // Sync containers with flags
+      updateLocationContainers();
+      updateMonsterContainers();
+    } catch(_) {}
+  })();
+
+  // Canvas interaction handlers (extracted from game.js init)
+  window.UI.onCanvasMouseMove = function (gc, evt) {
+    try {
+      var mousePos = (typeof window.getMousePos === 'function') ? window.getMousePos(gc, evt) : { x: 0, y: 0 };
+      var tX = Math.round((mousePos.x - window.mapCoordFromX) / window.ss - 0.5) + window.mapCoordToX;
+      var tY = Math.round((mousePos.y - window.mapCoordFromY) / window.ss - 0.5) + window.mapCoordToY;
+      if (window.mX !== tX + window.player_x || window.mY !== tY + window.player_y) {
+        window.mX = tX + window.player_x;
+        window.mY = tY + window.player_y;
+        try { $("#mouse_x").text(window.bX(window.mX)); } catch (_) {}
+        try { $("#mouse_y").text(window.bY(window.mY)); } catch (_) {}
+      }
+
+      // Tooltip: show reason when hovering an adjacent blocked tile
+      try {
+        var tip = window.__blockedTip;
+        if (tip && window.Locations && typeof window.Locations.isPassable === 'function') {
+          var isAdj = (Math.abs(window.player_x - window.mX) + Math.abs(window.player_y - window.mY) === 1);
+          var passable = window.Locations.isPassable(window.mX, window.mY);
+          if (isAdj && !passable) {
+            var reason = (typeof window.Locations.getBlockReason === 'function') ? (window.Locations.getBlockReason(window.mX, window.mY) || 'Blocked') : 'Blocked';
+            tip.textContent = reason;
+            tip.style.left = Math.round(mousePos.x + 12) + 'px';
+            tip.style.top = Math.round(mousePos.y + 12) + 'px';
+            tip.style.display = 'block';
+          } else {
+            tip.style.display = 'none';
+          }
+        }
+      } catch(_) {}
+    } catch (_) {}
+  };
+
+  window.UI.onCanvasClick = function (evt) {
+    try {
+      var loc = window.locationsDict["" + window.mX + "," + window.mY];
+      if (loc) {
+        var location = window.locationsDict["" + window.mX + "," + window.mY];
+        window.UI.showEl("#location_box");
+        $(".location_name").text(location.name);
+        $("#location_image").attr("src", location.image.currentSrc);
+        $("#location_description").text(location.description);
+
+        var location_stats = location.stats;
+        var location_fields = String(location_stats || '').split(";");
+        $("#location_spawns").text("None");
+        for (var index = 0; index < location_fields.length; index++) {
+          var field = location_fields[index];
+          if (field.indexOf("spawns") === 0) {
+            $("#location_spawns").text(field.split("=")[1].split(",").join(", "));
+          }
+        }
+      }
+
+      if (Math.abs(window.player_x - window.mX) + Math.abs(window.player_y - window.mY) === 1) {
+        window.UI.showEl("#location_box");
+        if (!loc) {
+          $(".location_name").text('???');
+          window.UI.hideEl("#locationStatsPrimaryBtn");
+          window.UI.showEl("#locationStatsDisabledBtn");
+          window.UI.hideEl("#locationInfoBtn");
+          window.UI.showEl("#locationInfoDisabledBtn");
+        } else {
+          window.UI.hideEl("#locationStatsDisabledBtn");
+          window.UI.showEl("#locationStatsPrimaryBtn");
+          window.UI.hideEl("#locationInfoDisabledBtn");
+          window.UI.showEl("#locationInfoBtn");
+        }
+        window.UI.hideEl("#moveDisabledBtn");
+        window.UI.showEl("#moveSuccessBtn");
+        if (window.mX < window.player_x) window.moveDirection = "left";
+        if (window.mX > window.player_x) window.moveDirection = "right";
+        if (window.mY < window.player_y) window.moveDirection = "up";
+        if (window.mY > window.player_y) window.moveDirection = "down";
+      } else {
+        window.UI.hideEl("#moveSuccessBtn");
+        window.UI.hideEl("#moveDisabledBtn");
+        if (!loc) {
+          window.UI.hideEl("#location_box");
+        }
+      }
+    } catch (_) {}
+  };
+
+  window.UI.toggleLocationInfo = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
+    // Toggle independent state
+    window.locationInfoOpen = !window.locationInfoOpen;
+    if (window.locationInfoOpen) {
+      showEl('#location_box');
+      showEl('#location_info_box');
+      try { speak($("#location_description").text()); } catch (_) {}
+    } else {
+      hideEl('#location_info_box');
+    }
+    updateLocationContainers();
+  };
+
+  window.UI.toggleLocationStats = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#location_box'); } catch(_) {}
+    // Toggle independent state
+    window.locationStatsOpen = !window.locationStatsOpen;
+    if (window.locationStatsOpen) {
+      showEl('#location_box');
+      showEl('#location_stats_box');
+    } else {
+      hideEl('#location_stats_box');
+    }
+    updateLocationContainers();
+  };
+
+  // Location actions drop-up menu
+  window.UI.toggleLocationActions = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var menu = document.getElementById('locationActionsDropup');
+    if (!menu) return;
+    if (menu.classList.contains('hidden')) {
+      menu.classList.remove('hidden');
+      // Close menu when clicking outside
+      setTimeout(function() {
+        document.addEventListener('click', window.UI._closeLocationActionsOnClickOutside);
+      }, 0);
+    } else {
+      menu.classList.add('hidden');
+      document.removeEventListener('click', window.UI._closeLocationActionsOnClickOutside);
+    }
+  };
+  window.UI.closeLocationActions = function () {
+    var menu = document.getElementById('locationActionsDropup');
+    if (menu) menu.classList.add('hidden');
+    document.removeEventListener('click', window.UI._closeLocationActionsOnClickOutside);
+  };
+  window.UI._closeLocationActionsOnClickOutside = function (e) {
+    var container = document.getElementById('locationActionsMenu');
+    if (container && !container.contains(e.target)) {
+      window.UI.closeLocationActions();
+    }
+  };
+  // Update Actions button visibility based on whether any action buttons are visible
+  window.UI.updateLocationActionsButton = function () {
+    try {
+      var gatherBtn = document.getElementById('gatherBtn');
+      var restBtn = document.getElementById('restBtn');
+      var respawnBtn = document.getElementById('respawnBtn');
+      var shopBtn = document.getElementById('shopBtn');
+      var storageBtn = document.getElementById('storageBtn');
+      var actionsBtn = document.getElementById('locationActionsBtn');
+      if (!actionsBtn) return;
+      // Check if any action button is visible (not hidden)
+      var anyVisible = [gatherBtn, restBtn, respawnBtn, shopBtn, storageBtn].some(function(btn) {
+        return btn && !btn.classList.contains('hidden');
+      });
+      if (anyVisible) {
+        actionsBtn.classList.remove('hidden');
+      } else {
+        actionsBtn.classList.add('hidden');
+        // Also close the menu if open
+        window.UI.closeLocationActions();
+      }
+    } catch(_) {}
+  };
+
+  window.UI.toggleItemsTable = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    if (window.itemToggle == 0) {
+      window.itemToggle = 1;
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#items_box'); } catch(_) {}
+      showEl("#items_table");
+      if (window.itemInfoBox == 1) {
+        hideEl("#items_table");
+        showEl("#item_info_box");
+        showEl("#items_description_btn");
+      } else {
+        showEl("#items_table");
+        hideEl("#item_info_box");
+        hideEl("#items_description_btn");
+      }
+    } else {
+      window.itemToggle = 0;
+      hideEl("#items_table");
+      hideEl("#item_info_box");
+      hideEl("#items_description_btn");
+    }
+  };
+
+  // Toggle skills panel within items_box
+  window.UI.toggleSkills = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var $box = $("#skills_box");
+    if (!$box.length) return;
+    if ($box.hasClass('hidden')) { 
+      showEl('#skills_box'); 
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skills_box'); } catch(_) {}
+      // Refresh usable skills when opening
+      if (window.UsableSkills && typeof UsableSkills.refresh === 'function') {
+        UsableSkills.refresh();
+      }
+    }
+    else { hideEl('#skills_box'); }
+  };
+
+  // Show skill info panel and set Use button state
+  window.UI.showSkillInfo = function (skillId) {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    if (!skillId) return;
+    var title = '', desc = '', cost = 0, cd = 0, useBtnId = '', statusId = '';
+    switch (skillId) {
+      case 'power_strike':
+        title = 'Power Strike';
+        desc = 'A heavy attack that deals 150% damage.';
+        cost = 5; cd = 5;
+        useBtnId = '#skill_use_btn_power_strike';
+        statusId = '#skill_status_power_strike';
+        break;
+      case 'fireball':
+        title = 'Fireball';
+        desc = 'A searing blast that deals 160% damage.';
+        cost = 7; cd = 6;
+        useBtnId = '#skill_use_btn_fireball';
+        statusId = '#skill_status_fireball';
+        break;
+      default:
+        return;
+    }
+    // Toggle visibility of Use buttons and status rows for known skills
+    try {
+      $('#skill_use_btn_power_strike, #skill_status_power_strike').addClass('hidden');
+      $('#skill_use_btn_fireball, #skill_status_fireball').addClass('hidden');
+      $(useBtnId + ', ' + statusId).removeClass('hidden');
+    } catch(_) {}
+    $('#skill_title').text(title);
+    $('#skill_desc').text(desc + ' Costs ' + cost + ' MP. Cooldown ' + cd + 's.');
+    $('#skill_meta').text('Cost: ' + cost + ' MP • Cooldown: ' + cd + 's');
+
+    // Compute current state
+    var mp = parseInt($('#player_mp').text() || '0', 10) || 0;
+    var remain = 0;
+    if (skillId === 'power_strike') {
+      remain = window._psRemain ? (parseInt(window._psRemain, 10) || 0) : 0;
+    } else if (skillId === 'fireball') {
+      remain = window._fbRemain ? (parseInt(window._fbRemain, 10) || 0) : 0;
+    }
+    var $useBtn = $(useBtnId);
+    var $status = $(statusId);
+    if ($useBtn && $useBtn.length) {
+      if (remain > 0) {
+        $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+        $status.text('Cooldown ' + remain + 's');
+      } else if (mp < cost) {
+        $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+        $status.text('Need ' + cost + ' MP');
+      } else {
+        $useBtn.removeClass('is-disabled').removeAttr('disabled');
+        $status.text('');
+      }
+    }
+    showEl('#skill_info_box');
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skill_info_box'); } catch(_) {}
+    try { startSkillInfoAutorefresh(skillId); } catch(_) {}
+  };
+
+  window.UI.hideSkillInfo = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    hideEl('#skill_info_box');
+    try { stopSkillInfoAutorefresh(); } catch(_) {}
+    // Also call UsableSkills module if available
+    if (window.UsableSkills && typeof UsableSkills.hideSkillInfo === 'function') {
+      UsableSkills.hideSkillInfo();
+    }
+  };
+
+  window.UI.toggleItemsDescription = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    if (window.itemInfoBox == 0) {
+      window.itemInfoBox = 1;
+      showEl("#item_info_box");
+      showEl("#items_description_btn");
+      hideEl("#items_table");
+    } else {
+      window.itemInfoBox = 0;
+      hideEl("#item_info_box");
+      hideEl("#items_description_btn");
+      showEl("#items_table");
+    }
+  };
+
+  window.UI.toggleMonsterInfo = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
+    window.monsterInfoOpen = !window.monsterInfoOpen;
+    if (window.monsterInfoOpen) {
+      showEl('#monster_box');
+      showEl('#monster_info_box');
+      try { speak($("#monster_description").text()); } catch (_) {}
+    } else {
+      hideEl('#monster_info_box');
+    }
+    updateMonsterContainers();
+  };
+
+  window.UI.toggleMonsterStats = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
+    window.monsterStatsOpen = !window.monsterStatsOpen;
+    if (window.monsterStatsOpen) {
+      showEl('#monster_box');
+      showEl('#monster_stats_box');
+    } else {
+      hideEl('#monster_stats_box');
+    }
+    updateMonsterContainers();
+  };
+
+  window.UI.toggleBattleLog = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#monster_box'); } catch(_) {}
+    window.monsterBattleOpen = !window.monsterBattleOpen;
+    if (window.monsterBattleOpen) {
+      showEl('#monster_box');
+      showEl('#monster_battle_box');
+    } else {
+      hideEl('#monster_battle_box');
+    }
+    updateMonsterContainers();
+  };
+
+  window.UI.toggleDebug = function () {
+    if (!window.showDebug) {
+      window.showDebug = true;
+      showEl("#debug");
+    } else {
+      window.showDebug = false;
+      hideEl("#debug");
+    }
+  };
+
+  // Keyboard handler: attach once, delegate to existing globals
+  function setupKeyboardHandlers() {
+    if (window.__kbSetup) return;
+    window.__kbSetup = true;
+    document.onkeydown = function (event) {
+      switch (event.keyCode) {
+        case 37: case 65: if (window.Movement && typeof Movement.move === 'function') Movement.move("left"); break;
+        case 38: case 87: if (window.Movement && typeof Movement.move === 'function') Movement.move("up"); break;
+        case 39: case 68: if (window.Movement && typeof Movement.move === 'function') Movement.move("right"); break;
+        case 40: case 83: if (window.Movement && typeof Movement.move === 'function') Movement.move("down"); break;
+        case 13: {
+          // Enter: close any open primary dialogs (win/gather) or confirm defeat
+          var handled = false;
+          try {
+            var winDlg = document.getElementById('win-dialog');
+            if (winDlg && winDlg.open) { try { playSound(getImageUrl('click.mp3')); } catch(_) {} winDlg.close(); handled = true; }
+          } catch(_) {}
+          try {
+            if (!handled) {
+              var gDlg = document.getElementById('gather-dialog');
+              if (gDlg && gDlg.open) { try { playSound(getImageUrl('click.mp3')); } catch(_) {} gDlg.close(); handled = true; }
+            }
+          } catch(_) {}
+          try {
+            if (!handled) {
+              var loseDlg = document.getElementById('lose-dialog');
+              if (loseDlg && loseDlg.open) { try { playSound(getImageUrl('click.mp3')); } catch(_) {} if (window.UI && typeof UI.gameOver === 'function') UI.gameOver(); handled = true; }
+            }
+          } catch(_) {}
+          if (handled) { try { event.preventDefault(); } catch(_) {} }
+          break;
+        }
+        case 67: if (window.UI && typeof UI.toggleStats === 'function') UI.toggleStats(); break;
+        case 73: if (window.UI && typeof UI.toggleItemsTable === 'function') UI.toggleItemsTable(); break;
+        case 90: if (window.UI && typeof UI.toggleLocationInfo === 'function') UI.toggleLocationInfo(); break;
+        case 88: if (window.UI && typeof UI.toggleLocationStats === 'function') UI.toggleLocationStats(); break;
+        case 86: if ($("#monster_box").is(':visible') && window.UI && typeof UI.toggleMonsterInfo === 'function') UI.toggleMonsterInfo(); break;
+        case 66: if ($("#monster_box").is(':visible') && window.UI && typeof UI.toggleMonsterStats === 'function') UI.toggleMonsterStats(); break;
+        case 78: if ($("#monster_box").is(':visible') && window.UI && typeof UI.toggleBattleLog === 'function') UI.toggleBattleLog(); break;
+        case 77: if ($("#monster_box").is(':visible') && window.Combat && typeof Combat.attack === 'function') Combat.attack(); break;
+        case 79: { // O: open/close Options modal
+          try {
+            var opts = document.getElementById('ps-options');
+            if (opts && opts.style.display === 'block') { if (window.UI && typeof UI.closeOptions === 'function') UI.closeOptions(); }
+            else { if (window.UI && typeof UI.openOptions === 'function') UI.openOptions(); }
+          } catch(_) {}
+          break;
+        }
+        case 72:
+          if ($("#help-dialog").is(':visible')) { $("#close_help_btn").click(); }
+          else { try { playSound(getImageUrl("click.mp3")); } catch (_) {} document.getElementById('help-dialog').showModal(); }
+          break;
+      }
+    };
+  }
+  window.UI.setupKeyboardHandlers = setupKeyboardHandlers;
+  // Auto-attach on load for backward compatibility
+  setupKeyboardHandlers();
+  setupPanelHoverZ();
+
+  // Skill Info auto-refresh loop (cooldown/MP while panel is open)
+  function startSkillInfoAutorefresh(skillId){
+    try {
+      if (window.__skillInfoTimer) { clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; }
+      window.__skillInfoSkill = skillId || window.__skillInfoSkill || 'power_strike';
+      var id = window.__skillInfoSkill;
+      window.__skillInfoTimer = setInterval(function(){
+        try {
+          var box = document.getElementById('skill_info_box');
+          if (!box || box.classList.contains('hidden') || box.style.display === 'none') {
+            clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; return;
+          }
+          if (id === 'power_strike') {
+            var mp = parseInt($('#player_mp').text() || '0', 10) || 0;
+            var remain = window._psRemain ? (parseInt(window._psRemain, 10) || 0) : 0;
+            var cost = 5;
+            var $useBtn = $('#skill_use_btn_power_strike');
+            var $status = $('#skill_status_power_strike');
+            if ($useBtn && $useBtn.length) {
+              if (remain > 0) {
+                $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+                $status.text('Cooldown ' + remain + 's');
+              } else if (mp < cost) {
+                $useBtn.addClass('is-disabled').attr('disabled', 'disabled');
+                $status.text('Need ' + cost + ' MP');
+              } else {
+                $useBtn.removeClass('is-disabled').removeAttr('disabled');
+                $status.text('');
+              }
+            }
+          } else if (id === 'fireball') {
+            var mp2 = parseInt($('#player_mp').text() || '0', 10) || 0;
+            var remain2 = window._fbRemain ? (parseInt(window._fbRemain, 10) || 0) : 0;
+            var cost2 = 7;
+            var $useBtn2 = $('#skill_use_btn_fireball');
+            var $status2 = $('#skill_status_fireball');
+            if ($useBtn2 && $useBtn2.length) {
+              if (remain2 > 0) {
+                $useBtn2.addClass('is-disabled').attr('disabled', 'disabled');
+                $status2.text('Cooldown ' + remain2 + 's');
+              } else if (mp2 < cost2) {
+                $useBtn2.addClass('is-disabled').attr('disabled', 'disabled');
+                $status2.text('Need ' + cost2 + ' MP');
+              } else {
+                $useBtn2.removeClass('is-disabled').removeAttr('disabled');
+                $status2.text('');
+              }
+            }
+          }
+        } catch(_) {}
+      }, 300);
+    } catch(_) {}
+  }
+  function stopSkillInfoAutorefresh(){
+    try { if (window.__skillInfoTimer) { clearInterval(window.__skillInfoTimer); window.__skillInfoTimer = null; } } catch(_) {}
+  }
+
+  // Toggle skill tree panel
+  window.UI.toggleSkillTree = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var $box = $("#skill_tree_box");
+    if (!$box.length) return;
+    if ($box.hasClass('hidden')) {
+      showEl('#skill_tree_box');
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#skill_tree_box'); } catch(_) {}
+      // Populate skill tree
+      if (window.SkillTree && typeof window.SkillTree.refresh === 'function') {
+        window.SkillTree.refresh();
+      }
+    } else {
+      hideEl('#skill_tree_box');
+    }
+  };
+
+  // Toggle job selection panel
+  window.UI.toggleJobSelection = function () {
+    try { playSound(getImageUrl("click.mp3")); } catch (_) {}
+    var $box = $("#job_selection_box");
+    if (!$box.length) return;
+    if ($box.hasClass('hidden')) {
+      showEl('#job_selection_box');
+      try { if (window.UI && typeof UI.raisePanel === 'function') UI.raisePanel('#job_selection_box'); } catch(_) {}
+      // Populate job selection
+      if (window.JobSelection && typeof window.JobSelection.refresh === 'function') {
+        window.JobSelection.refresh();
+      }
+    } else {
+      hideEl('#job_selection_box');
+    }
+  };
+})();

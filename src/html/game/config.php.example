@@ -1,0 +1,76 @@
+<?php
+// Configuration
+$IMAGE_BASE_URL = "<BASE_URL>/story/uploads/";
+$NEWS_URL = "<BASE_URL>/story/news.json";
+
+$db = mysqli_connect(
+    $_ENV["DB_SERVER"],
+    $_ENV["DB_USERNAME"],
+    $_ENV["DB_PASSWORD"],
+    $_ENV["DB_NAME"]
+);
+if (!$db) {
+    die('Database connection failed');
+}
+
+function clean($str) {
+    return htmlspecialchars($str, ENT_QUOTES);
+}
+
+function strip($str) {
+    return strip_tags($str);
+}
+
+function getImageUrl($imagePath) {
+    global $IMAGE_BASE_URL;
+    // Remove leading slashes and "uploads/" prefix if present
+    $imagePath = ltrim($imagePath, '/');
+    $imagePath = preg_replace('#^(story/)?uploads/#', '', $imagePath);
+    return $IMAGE_BASE_URL . $imagePath;
+}
+
+function admin_game() {
+    return $_ENV["ADMIN_GAME"];
+}
+
+function super_admin_game() {
+    return $_ENV["SUPER_ADMIN_GAME"];
+}
+
+/**
+ * Optional URL to a JSON file providing header items to render in the header center.
+ * Expected JSON shape: { "items": [ "<a href='...'>Item</a>", "<span>News</span>" ] }
+ */
+function header_items_url() {
+    global $NEWS_URL;
+    return isset($NEWS_URL) ? trim($NEWS_URL) : "";
+}
+
+/**
+ * Fetch header items from configured URL. Returns an array of HTML strings.
+ */
+function fetch_header_items() {
+    $url = header_items_url();
+    if (!$url) return [];
+
+    // Prefer cURL for better control
+    $ch = curl_init($url);
+    if (!$ch) return [];
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'PalStory-Header/1.0');
+    $resp = curl_exec($ch);
+    if (curl_errno($ch)) { curl_close($ch); return []; }
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) return [];
+
+    $json = json_decode($resp, true);
+    if (!is_array($json)) return [];
+    $items = $json['items'] ?? [];
+    return is_array($items) ? $items : [];
+}
+
+?>

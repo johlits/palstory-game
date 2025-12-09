@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PalStory Admin Dashboard</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 1rem; }
+    header { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    input[type="text"], input[type="number"] { padding: 0.4rem; }
+    button { padding: 0.45rem 0.8rem; cursor: pointer; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { border-bottom: 1px solid #8884; padding: 0.4rem 0.5rem; text-align: left; }
+    th { position: sticky; top: 0; background: color-mix(in oklab, Canvas 90%, transparent); }
+    .muted { opacity: 0.7; }
+    .ok { color: #1a7f37; }
+    .err { color: #b3261e; }
+    .controls { display: flex; gap: 0.5rem; align-items: center; }
+    .pill { padding: 0.15rem 0.45rem; border-radius: 999px; border: 1px solid #8886; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0;">PalStory Admin</h1>
+    <span class="muted">Active players and recent logs</span>
+  </header>
+
+  <section class="controls" style="margin-top:0.5rem; gap:0.75rem; flex-wrap: wrap;">
+    <label>Token <input id="token" type="text" placeholder="MIGRATE_TOKEN" /></label>
+    <label>Limit <input id="limit" type="number" value="200" min="10" max="1000" /></label>
+    <label>Action <input id="filter_action" type="text" placeholder="e.g. move_resolved" /></label>
+    <label>Player <input id="filter_player" type="text" placeholder="player name" /></label>
+    <label>Room <input id="filter_room" type="number" min="0" placeholder="room_id" /></label>
+    <label>Since <input id="filter_since" type="number" min="0" value="0" /> min</label>
+    <label>Page <input id="page" type="number" value="1" min="1" /></label>
+    <label>Page size <input id="page_size" type="number" value="200" min="10" max="1000" /></label>
+    <label>Sort by
+      <select id="sort_by">
+        <option value="id">id</option>
+        <option value="ts">ts</option>
+        <option value="action">action</option>
+        <option value="player_name">player_name</option>
+        <option value="room_id">room_id</option>
+      </select>
+    </label>
+    <label>Dir
+      <select id="sort_dir">
+        <option value="desc">desc</option>
+        <option value="asc">asc</option>
+      </select>
+    </label>
+    <button id="refresh">Refresh</button>
+    <button id="clearFilters" title="Clear all filters">Clear</button>
+    <button id="exportCsv" title="Download CSV">Export CSV</button>
+    <label><input id="autorefresh" type="checkbox" checked /> Auto-refresh</label>
+    <span id="status" class="pill muted">Idle</span>
+    <a class="pill" href="health.php" target="_blank" rel="noopener noreferrer">health</a>
+    <div id="quickFilters" style="display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;">
+      <span class="muted">Quick:</span>
+      <button class="pill" data-action="move_resolved" type="button">move_resolved</button>
+      <button class="pill" data-action="move_blocked_fight" type="button">move_blocked_fight</button>
+      <button class="pill" data-action="combat_start" type="button">combat_start</button>
+      <button class="pill" data-action="combat_end" type="button">combat_end</button>
+      <button class="pill" data-action="item_equip" type="button">item_equip</button>
+      <button class="pill" data-action="item_unequip" type="button">item_unequip</button>
+      <button class="pill" data-action="item_drop" type="button">item_drop</button>
+    </div>
+  </section>
+
+  <div class="row">
+    <section>
+      <h2 style="margin:0.5rem 0;">Players <span id="playersCount" class="muted"></span></h2>
+      <div style="max-height: 60vh; overflow:auto; border: 1px solid #8884; border-radius: 6px;">
+        <table id="players">
+          <thead><tr>
+            <th>ID</th><th>Name</th><th>Room</th><th>X</th><th>Y</th><th>Last Seen</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin:0.5rem 0;">Recent Logs <span id="logsCount" class="muted"></span></h2>
+      <div style="max-height: 60vh; overflow:auto; border: 1px solid #8884; border-radius: 6px;">
+        <table id="logs">
+          <thead><tr>
+            <th data-sort="id" class="sortable">ID</th>
+            <th data-sort="ts" class="sortable">Time</th>
+            <th data-sort="room_id" class="sortable">Room</th>
+            <th data-sort="player_name" class="sortable">Player</th>
+            <th data-sort="action" class="sortable">Action</th>
+            <th>Details</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="pager" style="display:flex; gap:0.5rem; align-items:center; margin-top:0.5rem;">
+        <button id="prevPage" type="button">Prev</button>
+        <span id="pageInfo" class="muted">Page 1</span>
+        <button id="nextPage" type="button">Next</button>
+      </div>
+    </section>
+  </div>
+
+<script>
+(function(){
+  const $ = (sel) => document.querySelector(sel);
+  const tokenEl = $('#token');
+  const limitEl = $('#limit');
+  const actionEl = $('#filter_action');
+  const playerEl = $('#filter_player');
+  const roomEl = $('#filter_room');
+  const sinceEl = $('#filter_since');
+  const pageEl = $('#page');
+  const pageSizeEl = $('#page_size');
+  const sortByEl = $('#sort_by');
+  const sortDirEl = $('#sort_dir');
+  const statusEl = $('#status');
+  const quickEl = $('#quickFilters');
+
+  // Persist token and filters in localStorage
+  tokenEl.value = localStorage.getItem('palstory_admin_token') || '';
+  tokenEl.addEventListener('input', () => localStorage.setItem('palstory_admin_token', tokenEl.value));
+  actionEl.value = localStorage.getItem('palstory_admin_action') || '';
+  playerEl.value = localStorage.getItem('palstory_admin_player') || '';
+  roomEl.value = localStorage.getItem('palstory_admin_room') || '';
+  sinceEl.value = localStorage.getItem('palstory_admin_since') || '0';
+  pageEl.value = localStorage.getItem('palstory_admin_page') || '1';
+  pageSizeEl.value = localStorage.getItem('palstory_admin_page_size') || (localStorage.getItem('palstory_admin_limit') || '200');
+  sortByEl.value = localStorage.getItem('palstory_admin_sort_by') || 'id';
+  sortDirEl.value = localStorage.getItem('palstory_admin_sort_dir') || 'desc';
+  actionEl.addEventListener('input', () => localStorage.setItem('palstory_admin_action', actionEl.value));
+  playerEl.addEventListener('input', () => localStorage.setItem('palstory_admin_player', playerEl.value));
+  roomEl.addEventListener('input', () => localStorage.setItem('palstory_admin_room', roomEl.value));
+  sinceEl.addEventListener('input', () => localStorage.setItem('palstory_admin_since', sinceEl.value));
+  pageEl.addEventListener('input', () => localStorage.setItem('palstory_admin_page', pageEl.value));
+  pageSizeEl.addEventListener('input', () => localStorage.setItem('palstory_admin_page_size', pageSizeEl.value));
+  sortByEl.addEventListener('change', () => localStorage.setItem('palstory_admin_sort_by', sortByEl.value));
+  sortDirEl.addEventListener('change', () => localStorage.setItem('palstory_admin_sort_dir', sortDirEl.value));
+
+  async function fetchJSON(url) {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+    return res.json();
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = 'pill ' + (cls || 'muted');
+  }
+
+  function renderPlayers(data) {
+    const tbody = $('#players tbody');
+    tbody.innerHTML = '';
+    (data.players || []).forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.id}</td><td>${p.name}</td><td>${p.room_id}</td><td>${p.x}</td><td>${p.y}</td><td>${p.last_seen || ''}</td>`;
+      tbody.appendChild(tr);
+    });
+    $('#playersCount').textContent = `(${data.count || 0})`;
+  }
+
+  function renderLogs(data) {
+    const tbody = $('#logs tbody');
+    tbody.innerHTML = '';
+    (data.logs || []).forEach(l => {
+      let details = '';
+      try {
+        const obj = JSON.parse(l.details || '');
+        details = typeof obj === 'object' ? JSON.stringify(obj) : (l.details || '');
+      } catch(_) { details = l.details || ''; }
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${l.id}</td><td>${l.ts}</td><td>${l.room_id ?? ''}</td><td>${l.player_name ?? ''}</td><td>${l.action}</td><td>${details}</td>`;
+      tbody.appendChild(tr);
+    });
+    $('#logsCount').textContent = `(${data.count || 0})`;
+    const page = data.page || 1;
+    const size = data.page_size || (parseInt(pageSizeEl.value,10)||200);
+    const total = data.total || 0;
+    const pages = size > 0 ? Math.max(1, Math.ceil(total / size)) : 1;
+    $('#pageInfo').textContent = `Page ${page} / ${pages} — ${total} total`;
+    pageEl.value = String(page);
+  }
+
+  async function refresh() {
+    const token = encodeURIComponent(tokenEl.value.trim());
+    const limit = parseInt(limitEl.value, 10) || 200;
+    if (!token) { setStatus('Token required', 'err'); return; }
+
+    try {
+      setStatus('Loading...', 'muted');
+      const q = new URLSearchParams({
+        token,
+        // keep legacy limit for players endpoint only; logs uses page/page_size
+        limit: String(limit),
+      });
+      if (actionEl.value.trim()) q.set('action', actionEl.value.trim());
+      if (playerEl.value.trim()) q.set('player', playerEl.value.trim());
+      const rid = parseInt(roomEl.value, 10) || 0; if (rid > 0) q.set('room_id', String(rid));
+      const since = parseInt(sinceEl.value, 10) || 0; if (since > 0) q.set('since_min', String(since));
+      const page = Math.max(1, parseInt(pageEl.value,10) || 1);
+      const pageSize = Math.max(1, Math.min(1000, parseInt(pageSizeEl.value,10) || limit));
+      const sortBy = sortByEl.value;
+      const sortDir = sortDirEl.value;
+      const qLogs = new URLSearchParams({ token, page: String(page), page_size: String(pageSize), sort_by: sortBy, sort_dir: sortDir });
+      if (actionEl.value.trim()) qLogs.set('action', actionEl.value.trim());
+      if (playerEl.value.trim()) qLogs.set('player', playerEl.value.trim());
+      if (rid > 0) qLogs.set('room_id', String(rid));
+      if (since > 0) qLogs.set('since_min', String(since));
+
+      const [players, logs] = await Promise.all([
+        fetchJSON(`admin_players.php?token=${token}`),
+        fetchJSON(`admin_logs.php?${qLogs.toString()}`),
+      ]);
+      if (players.status !== 'ok') throw new Error('players error');
+      if (logs.status !== 'ok') throw new Error('logs error');
+      renderPlayers(players);
+      renderLogs(logs);
+      setStatus('OK', 'ok');
+    } catch (e) {
+      console.error(e);
+      setStatus('Error', 'err');
+    }
+  }
+
+  $('#refresh').addEventListener('click', refresh);
+  $('#exportCsv').addEventListener('click', () => {
+    const token = encodeURIComponent(tokenEl.value.trim());
+    const page = Math.max(1, parseInt(pageEl.value,10) || 1);
+    const pageSize = Math.max(1, Math.min(1000, parseInt(pageSizeEl.value,10) || 200));
+    const sortBy = sortByEl.value; const sortDir = sortDirEl.value;
+    const q = new URLSearchParams({ token, page: String(page), page_size: String(pageSize), sort_by: sortBy, sort_dir: sortDir, format: 'csv' });
+    if (actionEl.value.trim()) q.set('action', actionEl.value.trim());
+    if (playerEl.value.trim()) q.set('player', playerEl.value.trim());
+    const rid = parseInt(roomEl.value, 10) || 0; if (rid > 0) q.set('room_id', String(rid));
+    const since = parseInt(sinceEl.value, 10) || 0; if (since > 0) q.set('since_min', String(since));
+    window.open(`admin_logs.php?${q.toString()}`, '_blank');
+  });
+  // Clear filters: reset inputs and storage
+  $('#clearFilters').addEventListener('click', () => {
+    actionEl.value = '';
+    playerEl.value = '';
+    roomEl.value = '';
+    sinceEl.value = '0';
+    localStorage.removeItem('palstory_admin_action');
+    localStorage.removeItem('palstory_admin_player');
+    localStorage.removeItem('palstory_admin_room');
+    localStorage.setItem('palstory_admin_since', '0');
+    refresh();
+  });
+  // Quick filters: set action and refresh
+  quickEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const act = btn.getAttribute('data-action');
+    actionEl.value = act;
+    localStorage.setItem('palstory_admin_action', act);
+    pageEl.value = '1';
+    localStorage.setItem('palstory_admin_page', '1');
+    refresh();
+  });
+
+  let timer = null;
+  function setAutoRefresh(on) {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (on) { timer = setInterval(refresh, 5000); }
+  }
+  const auto = $('#autorefresh');
+  setAutoRefresh(auto.checked);
+  auto.addEventListener('change', () => setAutoRefresh(auto.checked));
+
+  // Pager buttons
+  $('#prevPage').addEventListener('click', () => {
+    const p = Math.max(1, (parseInt(pageEl.value,10)||1) - 1);
+    pageEl.value = String(p);
+    localStorage.setItem('palstory_admin_page', pageEl.value);
+    refresh();
+  });
+  $('#nextPage').addEventListener('click', () => {
+    const p = (parseInt(pageEl.value,10)||1) + 1;
+    pageEl.value = String(p);
+    localStorage.setItem('palstory_admin_page', pageEl.value);
+    refresh();
+  });
+
+  // Clickable sort headers
+  document.querySelectorAll('#logs thead th.sortable').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-sort');
+      if (!key) return;
+      if (sortByEl.value === key) {
+        sortDirEl.value = (sortDirEl.value === 'asc') ? 'desc' : 'asc';
+        localStorage.setItem('palstory_admin_sort_dir', sortDirEl.value);
+      } else {
+        sortByEl.value = key;
+        localStorage.setItem('palstory_admin_sort_by', sortByEl.value);
+        sortDirEl.value = 'desc';
+        localStorage.setItem('palstory_admin_sort_dir', sortDirEl.value);
+      }
+      pageEl.value = '1';
+      localStorage.setItem('palstory_admin_page', '1');
+      refresh();
+    });
+  });
+
+  // Initial load
+  refresh();
+})();
+</script>
+</body>
+</html>

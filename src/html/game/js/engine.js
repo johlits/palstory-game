@@ -438,7 +438,7 @@
     var portraitUrl = (typeof window.getPortrait === 'function') ? window.getPortrait(window.player_portrait_id) : '';
     // Fallback portrait if helper returns empty/undefined
     if (!portraitUrl || typeof portraitUrl !== 'string') {
-      try { portraitUrl = (typeof window.getPortrait === 'function') ? window.getPortrait(-1) : 'p_female_warrior.png'; } catch(_) { portraitUrl = 'p_female_warrior.png'; }
+      try { portraitUrl = (typeof window.getPortrait === 'function') ? window.getPortrait(-1) : 'p_female_warrior.jpg'; } catch(_) { portraitUrl = 'p_female_warrior.jpg'; }
     }
 
     // Preload core SFX

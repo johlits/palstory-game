@@ -278,17 +278,17 @@
 
   // Portrait helpers
   function getPortrait(id) {
-    var url = (typeof window.getImageUrl === 'function') ? window.getImageUrl('p_birdman.png') : 'p_birdman.png';
+    var url = (typeof window.getImageUrl === 'function') ? window.getImageUrl('p_male_birdman.jpg') : 'p_male_birdman.jpg';
     var n = parseInt(id);
     switch (n) {
-      case -1: url = window.getImageUrl ? window.getImageUrl('p_female_warrior.png') : 'p_female_warrior.png'; break;
-      case -2: url = window.getImageUrl ? window.getImageUrl('p_female_bowman.png') : 'p_female_bowman.png'; break;
-      case -3: url = window.getImageUrl ? window.getImageUrl('p_male_barbarian.png') : 'p_male_barbarian.png'; break;
-      case -4: url = window.getImageUrl ? window.getImageUrl('p_male_priest.png') : 'p_male_priest.png'; break;
-      case -5: url = window.getImageUrl ? window.getImageUrl('p_female_paladin.png') : 'p_female_paladin.png'; break;
-      case -6: url = window.getImageUrl ? window.getImageUrl('p_male_thief.png') : 'p_male_thief.png'; break;
-      case -7: url = window.getImageUrl ? window.getImageUrl('p_female_mage.png') : 'p_female_mage.png'; break;
-      case -8: url = window.getImageUrl ? window.getImageUrl('p_male_monk.png') : 'p_male_monk.png'; break;
+      case -1: url = window.getImageUrl ? window.getImageUrl('p_female_warrior.jpg') : 'p_female_warrior.jpg'; break;
+      case -2: url = window.getImageUrl ? window.getImageUrl('p_female_bowman.jpg') : 'p_female_bowman.jpg'; break;
+      case -3: url = window.getImageUrl ? window.getImageUrl('p_male_barbarian.jpg') : 'p_male_barbarian.jpg'; break;
+      case -4: url = window.getImageUrl ? window.getImageUrl('p_male_priest.jpg') : 'p_male_priest.jpg'; break;
+      case -5: url = window.getImageUrl ? window.getImageUrl('p_female_paladin.jpg') : 'p_female_paladin.jpg'; break;
+      case -6: url = window.getImageUrl ? window.getImageUrl('p_male_thief.jpg') : 'p_male_thief.jpg'; break;
+      case -7: url = window.getImageUrl ? window.getImageUrl('p_female_mage.jpg') : 'p_female_mage.jpg'; break;
+      case -8: url = window.getImageUrl ? window.getImageUrl('p_male_monk.jpg') : 'p_male_monk.jpg'; break;
     }
     return url;
   }

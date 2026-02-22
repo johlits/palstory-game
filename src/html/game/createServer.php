@@ -1079,33 +1079,41 @@ function skillName($db, $data, $min_name_length, $max_name_length, $min_descript
     if ($row_count == 0) {
       // Execute INSERT directly for new skill
       $insertstmt = $db->prepare("INSERT INTO resources_skills(skill_id, name, image, description, mp_cost, cooldown_sec, damage_multiplier, unlock_cost, required_job, required_skills, skill_type, stat_modifiers, synergy_with, synergy_bonus, synergy_window_sec) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-      $skill_image_val = $skill_image ?: null;
-      $skill_required_skills_val = $skill_required_skills ?: null;
-      $skill_stat_modifiers_val = $skill_stat_modifiers ?: null;
-      $skill_synergy_with_val = $skill_synergy_with ?: null;
-      $skill_synergy_bonus_val = $skill_synergy_bonus ?: null;
-      $insertstmt->bind_param("sssiiidissssssi", $skill_id, $skill_name, $skill_image_val, $skill_description, $skill_mp_cost, $skill_cooldown, $skill_damage_multiplier, $skill_unlock_cost, $skill_required_job, $skill_required_skills_val, $skill_type, $skill_stat_modifiers_val, $skill_synergy_with_val, $skill_synergy_bonus_val, $skill_synergy_window);
-      if ($insertstmt->execute()) {
-        array_push($arr, "created");
+      if (!$insertstmt) {
+        array_push($arr, "prepare failed: " . $db->error);
       } else {
-        array_push($arr, "insert failed: " . $db->error);
+        $skill_image_val = $skill_image ?: null;
+        $skill_required_skills_val = $skill_required_skills ?: null;
+        $skill_stat_modifiers_val = $skill_stat_modifiers ?: null;
+        $skill_synergy_with_val = $skill_synergy_with ?: null;
+        $skill_synergy_bonus_val = $skill_synergy_bonus ?: null;
+        $insertstmt->bind_param("ssssiidissssssi", $skill_id, $skill_name, $skill_image_val, $skill_description, $skill_mp_cost, $skill_cooldown, $skill_damage_multiplier, $skill_unlock_cost, $skill_required_job, $skill_required_skills_val, $skill_type, $skill_stat_modifiers_val, $skill_synergy_with_val, $skill_synergy_bonus_val, $skill_synergy_window);
+        if ($insertstmt->execute()) {
+          array_push($arr, "created");
+        } else {
+          array_push($arr, "insert failed: " . $db->error);
+        }
+        $insertstmt->close();
       }
-      $insertstmt->close();
     } else {
       // Execute UPDATE directly for existing skill
       $updatestmt = $db->prepare("UPDATE resources_skills SET name = ?, image = ?, description = ?, mp_cost = ?, cooldown_sec = ?, damage_multiplier = ?, unlock_cost = ?, required_job = ?, required_skills = ?, skill_type = ?, stat_modifiers = ?, synergy_with = ?, synergy_bonus = ?, synergy_window_sec = ? WHERE skill_id = ?");
-      $skill_image_val = $skill_image ?: null;
-      $skill_required_skills_val = $skill_required_skills ?: null;
-      $skill_stat_modifiers_val = $skill_stat_modifiers ?: null;
-      $skill_synergy_with_val = $skill_synergy_with ?: null;
-      $skill_synergy_bonus_val = $skill_synergy_bonus ?: null;
-      $updatestmt->bind_param("sssiiidissssssis", $skill_name, $skill_image_val, $skill_description, $skill_mp_cost, $skill_cooldown, $skill_damage_multiplier, $skill_unlock_cost, $skill_required_job, $skill_required_skills_val, $skill_type, $skill_stat_modifiers_val, $skill_synergy_with_val, $skill_synergy_bonus_val, $skill_synergy_window, $skill_id);
-      if ($updatestmt->execute()) {
-        array_push($arr, "updated");
+      if (!$updatestmt) {
+        array_push($arr, "prepare failed: " . $db->error);
       } else {
-        array_push($arr, "update failed: " . $db->error);
+        $skill_image_val = $skill_image ?: null;
+        $skill_required_skills_val = $skill_required_skills ?: null;
+        $skill_stat_modifiers_val = $skill_stat_modifiers ?: null;
+        $skill_synergy_with_val = $skill_synergy_with ?: null;
+        $skill_synergy_bonus_val = $skill_synergy_bonus ?: null;
+        $updatestmt->bind_param("sssiidissssssis", $skill_name, $skill_image_val, $skill_description, $skill_mp_cost, $skill_cooldown, $skill_damage_multiplier, $skill_unlock_cost, $skill_required_job, $skill_required_skills_val, $skill_type, $skill_stat_modifiers_val, $skill_synergy_with_val, $skill_synergy_bonus_val, $skill_synergy_window, $skill_id);
+        if ($updatestmt->execute()) {
+          array_push($arr, "updated");
+        } else {
+          array_push($arr, "update failed: " . $db->error);
+        }
+        $updatestmt->close();
       }
-      $updatestmt->close();
     }
   }
   $selectstmt->close();

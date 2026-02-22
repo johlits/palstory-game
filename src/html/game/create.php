@@ -759,7 +759,7 @@ async function hashPassword() {
                   <td><?= $row['required_base_job'] ?: '-' ?></td>
                   <td>
                     <?= $row['banned'] == 1 ? "yes" : "no" ?>
-                    <button onclick='editJob(<?= (int)$row["id"] ?>, <?= json_encode($row["job_id"]) ?>, <?= json_encode($row["name"]) ?>, <?= json_encode($row["image"]) ?>, <?= json_encode($row["description"]) ?>, <?= json_encode($row["stat_modifiers"]) ?>, <?= (int)$row["min_level"] ?>, <?= (int)$row["tier"] ?>, <?= json_encode($row["required_base_job"]) ?>)'>Edit</button>
+                    <button onclick='editJob(<?= (int)$row["id"] ?>, <?= json_encode($row["job_id"], JSON_HEX_APOS) ?>, <?= json_encode($row["name"], JSON_HEX_APOS) ?>, <?= json_encode($row["image"], JSON_HEX_APOS) ?>, <?= json_encode($row["description"], JSON_HEX_APOS) ?>, <?= json_encode($row["stat_modifiers"], JSON_HEX_APOS) ?>, <?= (int)$row["min_level"] ?>, <?= (int)$row["tier"] ?>, <?= json_encode($row["required_base_job"], JSON_HEX_APOS) ?>)'>Edit</button>
                     <? if ($row['banned'] == 0 && $_SESSION['secret'] == super_admin_game_hash()) { ?>
                       <button onclick="banJob(<?= $row['id'] ?>, '<?= $_SESSION['secret'] ?>')">Ban</button>
                     <? } ?>
